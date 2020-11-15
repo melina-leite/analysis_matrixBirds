@@ -1,0 +1,743 @@
+---
+title: "Appendix 2: Forest cover at local and landscape scale"
+bibliography: refs_appendix.bib
+csl: journal-of-zoology.csl
+output:
+  pdf_document:
+    highlight: zenburn
+    toc: no
+documentclass: article
+classoption: a4paper
+header-includes:
+    - \usepackage{graphicx}
+    - \usepackage{float}
+    - \usepackage{setspace}\doublespacing
+    - \setlength{\parindent}{4em}
+    - \usepackage{indentfirst}
+    - \usepackage{booktabs}
+    - \usepackage{longtable}
+    - \usepackage{array}
+    - \usepackage{multirow}
+    - \usepackage[table]{xcolor}
+    - \usepackage{colortbl}
+    - \usepackage{pdflscape}
+    - \usepackage{tabu}
+    - \usepackage{threeparttable}
+    - \usepackage{threeparttablex}
+    - \usepackage[normalem]{ulem}
+    - \usepackage{makecell}
+    - \usepackage{placeins}
+    - \usepackage[margin=0.8in]{geometry}
+---
+
+\fontsize{11}{11}
+\selectfont
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = F, warning = F, fig.align = "center", message = F,
+  error = F, cache = T, fig.pos="H")
+
+library(knitr)
+library(tidyverse); library(cowplot); library(patchwork)
+theme_set(theme_cowplot)
+library(lme4); library(bbmle)
+library(corrplot)
+library(GGally)
+options(kableExtra.latex.load_packages = FALSE)
+library(kableExtra)
+```
+
+```{r}
+load("datasets.Rdata")
+```
+
+```{r}
+# variance inflation factor function
+vif.mer <- function (fit) {
+    ## adapted from rms::vif
+    v <- vcov(fit)
+    nam <- names(fixef(fit))
+    ## exclude intercepts
+    ns <- sum(1 * (nam == "Intercept" | nam == "(Intercept)"))
+    if (ns > 0) {
+        v <- v[-(1:ns), -(1:ns), drop = FALSE]
+        nam <- nam[-(1:ns)]
+    }
+    d <- diag(v)^0.5
+    v <- diag(solve(v/(d %o% d)))
+    names(v) <- nam
+    v
+}
+```
+
+This appendix is a description of the forest cover variables at local and landscape scale and the baseline models for the selection of the best scale for the local forest cover variable for each dataset. 
+
+For the local scale, we measured the percentage of forest cover within buffers of 400, 600 and 800 m around each sampling site. For the landscape forest cover, we used the 2 km buffer around the landscape centroid.
+
+
+# 1. Relationships among forest cover variables
+
+We calculated Pearson correlation coefficients for forest cover variables in each matrix quality region (Figure \ref{fig:fig1}). Also, we ploted the range of local forest cover (400 m) within the landscapes to see how local forest cover varies among landscapes in both regions (Figure \ref{fig:fig2}).
+
+```{r fig1, fig.cap="Correlations among forest cover variables in the high-quality (left) and low-quality matrix regions (right)."}
+high.cor <- env[which(env$matrix == "high_quality"), c(10,11,12,9)]
+colnames(high.cor) <- c("Local 400m", "Local 600m", 
+                      "Local 800m","Landscape 2km")
+low.cor <- env[which(env$matrix == "low_quality"), c(10,11,12,9)]
+colnames(low.cor) <- c("Local 400m", "Local 600m", 
+                      "Local 800m","Landscape 2km")
+
+par(mfrow=c(1,2))
+corrplot(cor(high.cor),method="number",type="lower", diag=F, 
+         order="original", cl.pos = "n",
+         mar = c(0,0,0,0)) 
+mtext("High-quality matrix", cex=1.2)
+corrplot(cor(low.cor),method="number",type="lower", diag=F, 
+         order="original",  cl.pos = "n") 
+mtext("Low-quality matrix", cex=1.2)
+```
+
+```{r fig2, fig.height=4, fig.cap="Range of local forest cover (buffer 400 m) within each landscape (buffer 2 km) for both regions. Each line represent a landscape and the dots area the local forest cover for each sampling site."}
+
+ggplot(env, aes(x=forest_site400, y=forest_land)) +
+  #facet_grid(~matrix) +
+  geom_point() +
+  geom_line() +
+  xlab(" % local forest cover (400 m)") + 
+  ylab("% landscape forest cover (2 km)") +
+  ylim(5,60)
+
+lab.fa <- c( `coffee` = "High-quality matrix",
+             `Pasto`= "Low-quality matrix")
+rbind(caf.amb[,c(1,3,13,7)], pas.amb[,c(1,3,13,7)]) %>%
+  ggplot(aes(x=fc400, y=forest_2k)) + 
+  geom_point() +
+  facet_wrap(~matriz, labeller = as_labeller(lab.fa)) +
+  geom_line(aes(shape=paisagem))  +
+ 
+```
+
+# 2. Scale of effects for local forest cover
+
+We ran different models with each local forest cover variable and selected the scale of effect using AIC model selection (and R^2^ of the models). The models follow the specification presented in the paper (_Community Modeling_ section), except that here we did not include trait variables. We only modeled the occurrence of species according to forest cover.
+
+We used `lme4` package (@bates_fitting_2015) to perform a GLMM with binomial (proportion) distribution. An example of the code for each assemblage is as follows:
+
+```
+model <- glmer(cbind(ocor, n.ocor) ~  
+                local.cover + (local.cover|sp) +   
+                (1|landscape:sp) + (1|site:sp) +   
+                (1|landscape) + (1|site),          
+                family=binomial, data=caf.ep)
+```
+
+```{r, eval=F}
+mcaf.ep4a <- glmer(cbind(ocor, repl.total-ocor) ~  
+                   fc400 + 
+                   (fc400 |sp) + (1|paisagem:sp) + (1|ponto:sp) + 
+                   (1|paisagem) + (1|ponto),
+                 family=binomial, data=caf.ep,
+                  nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                  optCtrl = list(maxfun = 500000)))
+mcaf.ep6a <- glmer(cbind(ocor, repl.total-ocor) ~  
+                   fc600 + 
+                   (fc600 |sp) + (1|paisagem:sp) + (1|ponto:sp) + 
+                   (1|paisagem) + (1|ponto),
+                 family=binomial, data=caf.ep,
+                  nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                  optCtrl = list(maxfun = 500000)))
+mcaf.ep8a <- glmer(cbind(ocor, repl.total-ocor) ~  
+                   fc800 + 
+                   (fc800|sp) + (1|paisagem:sp) + (1|ponto:sp) + 
+                   (1|paisagem) + (1|ponto),
+                 family=binomial, data=caf.ep,
+                  nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                  optCtrl = list(maxfun = 500000)))
+
+mpas.ep4a <- glmer(cbind(ocor, repl.total-ocor) ~  
+                   fc400 + 
+                   (fc400 |sp) + (1|paisagem:sp) + (1|ponto:sp) + 
+                   (1|paisagem) + (1|ponto),
+                 family=binomial, data=pas.ep,
+                  nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                  optCtrl = list(maxfun = 500000)))
+mpas.ep6a <- glmer(cbind(ocor, repl.total-ocor) ~  
+                   fc600 + 
+                   (fc600 |sp) + (1|paisagem:sp) + (1|ponto:sp) + 
+                   (1|paisagem) + (1|ponto),
+                 family=binomial, data=pas.ep,
+                  nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                  optCtrl = list(maxfun = 500000)))
+mpas.ep8a <- glmer(cbind(ocor, repl.total-ocor) ~  
+                   fc800  +
+                   (fc800|sp) + (1|paisagem:sp) + (1|ponto:sp) + 
+                   (1|paisagem) + (1|ponto),
+                 family=binomial, data=pas.ep,
+                  nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                  optCtrl = list(maxfun = 500000)))
+
+mcaf.gp4a <- glmer(cbind(ocor, repl.total-ocor) ~  
+                   fc400 + 
+                   (fc400 |sp) + (1|paisagem:sp) + (1|ponto:sp) + 
+                   (1|paisagem) + (1|ponto),
+                 family=binomial, data=caf.gp,
+                  nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                  optCtrl = list(maxfun = 500000)))
+mcaf.gp6a <- glmer(cbind(ocor, repl.total-ocor) ~  
+                     fc600 + 
+                     (fc600 |sp) + (1|paisagem:sp) + (1|ponto:sp) + 
+                     (1|paisagem) + (1|ponto),
+                   family=binomial, data=caf.gp,
+                   nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                         optCtrl = list(maxfun = 500000)))
+mcaf.gp8a <- glmer(cbind(ocor, repl.total-ocor) ~  
+                     fc800 + 
+                     (fc800|sp) + (1|paisagem:sp) + (1|ponto:sp) + 
+                     (1|paisagem) + (1|ponto),
+                   family=binomial, data=caf.gp,
+                   nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                          optCtrl = list(maxfun = 500000)))
+
+mpas.gp4a <- glmer(cbind(ocor, repl.total-ocor) ~  
+                   fc400 + 
+                   (fc400 |sp) + (1|paisagem:sp) + (1|ponto:sp) + 
+                   (1|paisagem) + (1|ponto),
+                 family=binomial, data=pas.gp,
+                  nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                  optCtrl = list(maxfun = 500000)))
+mpas.gp6a <- glmer(cbind(ocor, repl.total-ocor) ~  
+                     fc600 + 
+                     (fc600 |sp) + (1|paisagem:sp) + (1|ponto:sp) + 
+                     (1|paisagem) + (1|ponto),
+                   family=binomial, data=pas.gp,
+                   nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+mpas.gp8a <- glmer(cbind(ocor, repl.total-ocor) ~  
+                     fc800 +
+                     (fc800|sp) + (1|paisagem:sp) + (1|ponto:sp) + 
+                     (1|paisagem) + (1|ponto),
+                   family=binomial, data=pas.gp,
+                   nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                              optCtrl = list(maxfun = 500000)))
+```
+
+```{r}
+taic.ce <- AICtab(mcaf.ep4a, mcaf.ep6a, mcaf.ep8a, sort=F)
+class(taic.ce) <- "data.frame"
+taic.pe <- AICtab(mpas.ep4a, mpas.ep6a, mpas.ep8a, sort=F)
+class(taic.pe) <- "data.frame"
+taic.cg <- AICtab(mcaf.gp4a, mcaf.gp6a, mcaf.gp8a, sort=F)
+class(taic.cg) <- "data.frame"
+taic.pg <- AICtab(mpas.gp4a, mpas.gp6a, mpas.gp8a, sort=F)
+class(taic.pg) <- "data.frame"
+taic <- rbind(taic.pe, taic.ce, taic.pg, taic.cg)
+```
+
+```{r taic}
+taic$modelo <- rep(c("400m", "600m", "800m"), 4)
+taic$dataset <- rep(c("pas.ep", "caf.ep", "pas.gp", "caf.gp"), each=3)
+
+ttaic <- taic %>% dplyr::select(dataset,modelo,dAIC) %>% spread(dataset, dAIC) %>% select(modelo, caf.ep, pas.ep, caf.gp, pas.gp)
+  
+colnames(ttaic) <- c("model", "Pasture", "Coffee", "Pasture", "Coffee")
+```
+
+```{r}
+r2caf.ep <- data.frame(r.quad(mcaf.ep4a, "fc400"),
+                       m6a = r.quad(mcaf.ep6a, c("fc600"))[,2],
+                       m8a = r.quad(mcaf.ep8a, "fc800")[,2]) %>%
+  mutate_if(is.numeric, round, digits=2)
+colnames(r2caf.ep)[2] <- "m4a"
+rownames(r2caf.ep) <- r2caf.ep$componente
+r2pas.ep <- data.frame(r.quad(mpas.ep4a, "fc400"),
+                       m6a = r.quad(mpas.ep6a, c("fc600"))[,2],
+                       m8a = r.quad(mpas.ep8a, "fc800")[,2]) %>%
+  mutate_if(is.numeric, round, digits=2)
+colnames(r2pas.ep)[2] <- "m4a"
+rownames(r2pas.ep) <- r2pas.ep$componente
+r2caf.gp <- data.frame(r.quad(mcaf.gp4a, "fc400"),
+                       m6a = r.quad(mcaf.gp6a, c("fc600"))[,2],
+                       m8a = r.quad(mcaf.gp8a, "fc800")[,2]) %>%
+  mutate_if(is.numeric, round, digits=2)
+colnames(r2caf.gp)[2] <- "m4a"
+rownames(r2caf.gp) <- r2caf.gp$componente
+r2pas.gp <- data.frame(r.quad(mpas.gp4a, "fc400"),
+                       m6a = r.quad(mpas.gp6a, c("fc600"))[,2],
+                       m8a = r.quad(mpas.gp8a, "fc800")[,2]) %>%
+  mutate_if(is.numeric, round, digits=2)
+colnames(r2pas.gp)[2] <- "m4a"
+rownames(r2pas.gp) <- r2pas.gp$componente
+
+tudo <- rbind( t(r2pas.ep[,-1]),t(r2caf.ep[,-1]), t(r2pas.gp[,-1]), t(r2caf.gp[,-1]))
+tudo <- tudo*100
+```
+
+```{r}
+tabis <- cbind(tudo,taic) %>% mutate(dAIC = round(dAIC,2))  
+colnames(tabis) <- c("Total", "fixed","env.sp", "lands.sp", "site.sp", "lands", "site", "dAIC", "df", "Model","dataset") 
+
+kable(tabis[,c(10,1:9)], "latex", booktabs=T, row.names = F,
+      caption= "Overal and marginal r-squares and model comparisons with Akaike Information Criterion (AIC) for models with different local forest cover scales as predictor for the specialist and generalists species in both regions with different matrix qualities. For the terms see Table 1 (main text). dAIC is the difference in Akaike Information Criterion to the best model; df are the degrees of freedom.") %>%
+  kable_styling() %>%
+  group_rows("Forest specialist species", 1, 6) %>%
+  group_rows("      Low-quality matrix", 1,3) %>%
+  group_rows("      High-quality matrix", 4,6) %>%
+  group_rows("Forest generalist species", 7, 12) %>%
+  group_rows("      Low-quality matrix", 7,9) %>%
+  group_rows("      High-quality matrix", 10,12) %>%
+  add_header_above(c(" " = 1, " " = 7, "AIC"= 2))
+```
+
+```{r}
+pfc400 <- data.frame(fc400 = seq(min(caf.ep$fc400), max(caf.ep$fc400), length.out=20))
+pfc400$pred <- predict(mcaf.ep4a, newdata=pfc400, re.form=NA, type="response")
+pfc400$cob <- pfc400$fc400*sd(caf.ep$fc400o) + mean(caf.ep$fc400o)
+
+pfc600 <- data.frame(fc600 = seq(min(caf.ep$fc600), max(caf.ep$fc600), length.out=20))
+pfc600$pred <- predict(mcaf.ep6a, newdata=pfc600, re.form=NA, type="response")
+pfc600$cob <- pfc600$fc600*sd(caf.ep$fc600o) + mean(caf.ep$fc600o)
+
+pfc800 <- data.frame(fc800 = seq(min(caf.ep$fc800), max(caf.ep$fc800), length.out=20))
+pfc800$pred <- predict(mcaf.ep8a, newdata=pfc800, re.form=NA, type="response")
+pfc800$cob<- pfc800$fc800*sd(caf.ep$fc800o) + mean(caf.ep$fc800o)
+
+
+fcaf.ep <- rbind(pfc400[,2:3], pfc600[,2:3], pfc800[,2:3]) %>%
+  mutate(modelo = rep(c("fc400","fc600","fc800"), each=20),
+         dataset = "caf.ep")
+#ggplot(fig, aes(x=cob, y=pred, col=modelo)) + geom_line()
+```
+
+```{r}
+pfc400 <- data.frame(fc400 = seq(min(pas.ep$fc400), max(pas.ep$fc400), length.out=20))
+pfc400$pred <- predict(mpas.ep4a, newdata=pfc400, re.form=NA, type="response")
+pfc400$cob <- pfc400$fc400*sd(pas.ep$fc400o) + mean(pas.ep$fc400o)
+
+pfc600 <- data.frame(fc600 = seq(min(pas.ep$fc600), max(pas.ep$fc600), length.out=20))
+pfc600$pred <- predict(mpas.ep6a, newdata=pfc600, re.form=NA, type="response")
+pfc600$cob <- pfc600$fc600*sd(pas.ep$fc600o) + mean(pas.ep$fc600o)
+
+pfc800 <- data.frame(fc800 = seq(min(pas.ep$fc800), max(pas.ep$fc800), length.out=20))
+pfc800$pred <- predict(mpas.ep8a, newdata=pfc800, re.form=NA, type="response")
+pfc800$cob<- pfc800$fc800*sd(pas.ep$fc800o) + mean(pas.ep$fc800o)
+
+fpas.ep <- rbind(pfc400[,2:3], pfc600[,2:3], pfc800[,2:3]) %>%
+  mutate(modelo = rep(c("fc400","fc600", "fc800"), each=20),
+         dataset = "pas.ep")
+```
+
+```{r}
+pfc400 <- data.frame(fc400 = seq(min(caf.gp$fc400), max(caf.gp$fc400), length.out=20))
+pfc400$pred <- predict(mcaf.gp4a, newdata=pfc400, re.form=NA, type="response")
+pfc400$cob <- pfc400$fc400*sd(caf.gp$fc400o) + mean(caf.gp$fc400o)
+ 
+pfc600 <- data.frame(fc600 = seq(min(caf.gp$fc600), max(caf.gp$fc600), length.out=20))
+pfc600$pred <- predict(mcaf.gp6a, newdata=pfc600, re.form=NA, type="response")
+pfc600$cob <- pfc600$fc600*sd(caf.gp$fc600o) + mean(caf.gp$fc600o)
+
+pfc800 <- data.frame(fc800 = seq(min(caf.gp$fc800), max(caf.gp$fc800), length.out=20))
+pfc800$pred <- predict(mcaf.gp8a, newdata=pfc800, re.form=NA, type="response")
+pfc800$cob<- pfc800$fc800*sd(caf.gp$fc800o) + mean(caf.gp$fc800o)
+
+fcaf.gp <- rbind(pfc400[,2:3], pfc600[,2:3], pfc800[,2:3]) %>%
+  mutate(modelo = rep(c("fc400","fc600","fc800"), each=20),
+         dataset = "caf.gp")
+```
+
+```{r}
+pfc400 <- data.frame(fc400 = seq(min(pas.gp$fc400), max(pas.gp$fc400), length.out=20))
+pfc400$pred <- predict(mpas.gp4a, newdata=pfc400, re.form=NA, type="response")
+pfc400$cob <- pfc400$fc400*sd(pas.gp$fc400o) + mean(pas.gp$fc400o)
+
+pfc600 <- data.frame(fc600 = seq(min(pas.gp$fc600), max(pas.gp$fc600), length.out=20))
+pfc600$pred <- predict(mpas.gp6a, newdata=pfc600, re.form=NA, type="response")
+pfc600$cob <- pfc600$fc600*sd(pas.gp$fc600o) + mean(pas.gp$fc600o)
+
+pfc800 <- data.frame(fc800 = seq(min(pas.gp$fc800), max(pas.gp$fc800), length.out=20))
+pfc800$pred <- predict(mpas.gp8a, newdata=pfc800, re.form=NA, type="response")
+pfc800$cob<- pfc800$fc800*sd(pas.gp$fc800o) + mean(pas.gp$fc800o)
+
+fpas.gp <- rbind(pfc400[,2:3], pfc600[,2:3], pfc800[,2:3]) %>%
+  mutate(modelo = rep(c("fc400", "fc600", "fc800"),each=20),
+         dataset="pas.gp")
+```
+
+In Figure \ref{fig:fig.pred}, we present the occurrence probability predicted for the models with different local forest cover scales for all the assemblages. Predictions were quite similar and decreased with forest cover for the specialists, especially in the forest matrix region, and increased or remained flat for the generalists.
+
+```{r fig.pred, fig.cap="Predictions of the models with different local forest cover scales (lines) for specialists and generalists in both regions."}
+labs <- c(caf = "Coffee matrix", pas="Pasture matrix",
+          ep = "Specialists", gp = "Generalists")
+rbind(fcaf.ep, fpas.ep,fcaf.gp, fpas.gp) %>%
+  separate(dataset, c("matrix", "habitat")) %>%
+  ggplot(aes(x=cob, y=pred, col=modelo)) + geom_line()+
+  facet_grid(habitat~matrix, labeller=as_labeller(labs), scales = "free") +
+  scale_color_discrete("Scale", labels=c("400 m", "600 m", "800 m")) +
+  scale_x_continuous(limits = c(0,80), name="Local forest cover (%)")+
+  scale_y_continuous("Occurrence probability",
+                     breaks=c(0,0.02,0.04,0.06,0.08,0.1),
+                     expand=expand_scale(add=0), limits=c(0,0.1)) +
+  theme(panel.spacing = unit(5, "mm")) +
+  geom_hline(yintercept = 0, size=0.8)
+```
+
+## Residual correlations among species
+
+We evaluated the residual Kendall correlations among species for the 400 m models using the predictions for site:sp random effects (Observation Level Random Effect), following the code provided by @miller_functional_2018. Codes for the species names are presented in the dataset available.
+
+Below we show models residual correlation plots for the specialists in the high-quality matrix region. All the other assemblages presented similar results.
+
+```{r, fig.height=4}
+nsites = 40
+nspp = length(unique(caf.ep$sp))
+dat <- caf.ep
+
+dat$resid <- as.matrix(ranef(mcaf.ep4a)$`ponto:sp`)
+X <- matrix(dat$resid, nrow=nsites, ncol=nspp, byrow=F)
+rownames(X) <- unique(dat$ponto)
+colnames(X) <- unique(dat$sp)
+
+# species correlations
+corrs.sp <- cor(X, method="kendall")
+for(i in 1:nspp) corrs.sp[i,i] <- NA
+
+# site correlations
+corrs.site <- cor(t(X), method="kendall")
+for(i in 1:nsites) corrs.site[i,i] <- NA
+```
+
+Range of species correlations: `r round(range(corrs.sp, na.rm=T),2)`. 
+
+Range of sites correlations: `r round(range(corrs.site, na.rm=T),2)`.
+
+```{r, fig.height=4, fig.cap="Species residual Kendall correlations for the specialist species in the coffee matrix region."}
+corrplot(corrs.sp, method="square", type="upper",diag=F,tl.cex=0.5,cl.cex=0.5)
+```
+
+```{r, fig.height=3, fig.cap="Sites residual Kendall correlations for the specialist species in the coffee matrix region."}
+corrplot(corrs.site, method="square", type="upper",diag=F,tl.cex=0.5,cl.cex=0.5)
+```
+
+```{r, fig.height=4, fig.cap= "Histograms of the residual Kendall correlations for the specialists species in the coffee matrix region."}
+x.sp <- matrix(corrs.sp, ncol=1)
+x.site <- matrix(corrs.site, ncol=1)
+x.sp <- x.sp[!is.na(x.sp)]
+x.site <- x.site[!is.na(x.site)]
+
+# Figure histogram
+par(mfrow=c(1,2), mai=c(1,1,.5,.2))
+hist(corrs.sp, main="", probability=T, breaks=.1*(-10:10), xlab="Correlation coefficients", ylab="Probability", ylim=c(0,4), cex.lab=1.2)
+mtext("Species", side=3,cex=1.2)
+
+hist(corrs.site, main="", probability=T, breaks=.1*(-10:10), xlab="Correlation coefficients", ylab="Probability", ylim=c(0,4), cex.lab=1.2)
+mtext("Sites", side=3, cex=1.2)
+```
+
+<!--
+### Forest specialist species in the low-quality matrix region
+
+```{r}
+nsites = 52
+nspp = length(unique(pas.ep$sp))
+dat <- pas.ep
+
+dat$resid <- as.matrix(ranef(mpas.ep4a)$`ponto:sp`)
+X <- matrix(dat$resid, nrow=nsites, ncol=nspp, byrow=F)
+rownames(X) <- unique(dat$ponto)
+colnames(X) <- unique(dat$sp)
+
+# species correlations
+corrs.sp <- cor(X, method="kendall")
+for(i in 1:nspp) corrs.sp[i,i] <- NA
+
+# site correlations
+corrs.site <- cor(t(X), method="kendall")
+for(i in 1:nsites) corrs.site[i,i] <- NA
+```
+
+Range of species correlations: `r round(range(corrs.sp, na.rm=T),2)`
+
+Range of sites correlations: `r round(range(corrs.site, na.rm=T),2)`
+
+```{r, fig.height=4, fig.cap="Species residual Kendall correlations for the specialist species in the pasture matrix region."}
+corrplot(corrs.sp, method="square", type="upper",diag=F,tl.cex=0.5,cl.cex=0.5)
+```
+
+```{r, fig.height=3, fig.cap="Sites residual Kendall correlations for the specialist species in the coffee matrix region."}
+corrplot(corrs.site, method="square", type="upper",diag=F,tl.cex=0.5,cl.cex=0.5)
+```
+
+```{r, fig.height=4, fig.cap= "Histograms of the residual Kendall correlations for the specialists species in the pasture matrix region."}
+x.sp <- matrix(corrs.sp, ncol=1)
+x.site <- matrix(corrs.site, ncol=1)
+x.sp <- x.sp[!is.na(x.sp)]
+x.site <- x.site[!is.na(x.site)]
+
+# Figure histogram
+par(mfrow=c(1,2), mai=c(1,1,.5,.2))
+hist(corrs.sp, main="", probability=T, breaks=.1*(-10:10), xlab="Correlation coefficients", ylab="Probability", ylim=c(0,4), cex.lab=1.2)
+mtext("Species", side=3,cex=1.2)
+
+hist(corrs.site, main="", probability=T, breaks=.1*(-10:10), xlab="Correlation coefficients", ylab="Probability", ylim=c(0,4), cex.lab=1.2)
+mtext("Sites", side=3, cex=1.2)
+```
+
+### Forest generalist species in the high-quality matrix region
+
+```{r}
+nsites = 40
+nspp = length(unique(caf.gp$sp))
+dat <- caf.gp
+
+dat$resid <- as.matrix(ranef(mcaf.gp4a)$`ponto:sp`)
+X <- matrix(dat$resid, nrow=nsites, ncol=nspp, byrow=F)
+rownames(X) <- unique(dat$ponto)
+colnames(X) <- unique(dat$sp)
+
+# species correlations
+corrs.sp <- cor(X, method="kendall")
+for(i in 1:nspp) corrs.sp[i,i] <- NA
+
+# site correlations
+corrs.site <- cor(t(X), method="kendall")
+for(i in 1:nsites) corrs.site[i,i] <- NA
+```
+
+Range of species correlations: `r round(range(corrs.sp, na.rm=T),2)`. Range of sites correlations: `r round(range(corrs.site, na.rm=T),2)`.
+
+```{r, fig.height=4, fig.cap="Species residual Kendall correlations for the generalist species in the coffee matrix region."}
+corrplot(corrs.sp, method="square", type="upper",diag=F,tl.cex=0.5,cl.cex=0.5)
+```
+
+```{r, fig.height=3, fig.cap="Sites residual Kendall correlations for the generalist species in the coffee matrix region."}
+corrplot(corrs.site, method="square", type="upper",diag=F,tl.cex=0.5,cl.cex=0.5)
+```
+
+```{r, fig.height=4, fig.cap= "Histograms of the residual Kendall correlations for the generalist species in the coffee matrix region."}
+x.sp <- matrix(corrs.sp, ncol=1)
+x.site <- matrix(corrs.site, ncol=1)
+x.sp <- x.sp[!is.na(x.sp)]
+x.site <- x.site[!is.na(x.site)]
+
+# Figure histogram
+par(mfrow=c(1,2), mai=c(1,1,.5,.2))
+hist(corrs.sp, main="", probability=T, breaks=.1*(-10:10), xlab="Correlation coefficients", ylab="Probability", ylim=c(0,4), cex.lab=1.2)
+mtext("Species", side=3,cex=1.2)
+
+hist(corrs.site, main="", probability=T, breaks=.1*(-10:10), xlab="Correlation coefficients", ylab="Probability", ylim=c(0,4), cex.lab=1.2)
+mtext("Sites", side=3, cex=1.2)
+```
+
+### Forest generalist species in the low-quality matrix region
+
+```{r}
+nsites = 52
+nspp = length(unique(pas.gp$sp))
+dat <- pas.gp
+
+dat$resid <- as.matrix(ranef(mpas.gp4a)$`ponto:sp`)
+X <- matrix(dat$resid, nrow=nsites, ncol=nspp, byrow=F)
+rownames(X) <- unique(dat$ponto)
+colnames(X) <- unique(dat$sp)
+
+# species correlations
+corrs.sp <- cor(X, method="kendall")
+for(i in 1:nspp) corrs.sp[i,i] <- NA
+
+# site correlations
+corrs.site <- cor(t(X), method="kendall")
+for(i in 1:nsites) corrs.site[i,i] <- NA
+```
+
+Range of species correlations: `r round(range(corrs.sp, na.rm=T),2)`. Range of sites correlations: `r round(range(corrs.site, na.rm=T),2)`
+
+```{r, fig.height=4, fig.cap="Species residual Kendall correlations for the generalist species in the pasture matrix region."}
+corrplot(corrs.sp, method="square", type="upper",diag=F,tl.cex=0.5,cl.cex=0.5)
+```
+
+```{r, fig.height=3, fig.cap="Sites residual Kendall correlations for the generalist species in the pasture matrix region."}
+corrplot(corrs.site, method="square", type="upper",diag=F,tl.cex=0.5,cl.cex=0.5)
+```
+
+```{r, fig.height=4, fig.cap= "Histograms of the residual Kendall correlations for the generalists species in the pasture matrix region."}
+x.sp <- matrix(corrs.sp, ncol=1)
+x.site <- matrix(corrs.site, ncol=1)
+x.sp <- x.sp[!is.na(x.sp)]
+x.site <- x.site[!is.na(x.site)]
+
+# Figure histogram
+par(mfrow=c(1,2), mai=c(1,1,.5,.2))
+hist(corrs.sp, main="", probability=T, breaks=.1*(-10:10), xlab="Correlation coefficients", ylab="Probability", ylim=c(0,4), cex.lab=1.2)
+mtext("Species", side=3,cex=1.2)
+
+hist(corrs.site, main="", probability=T, breaks=.1*(-10:10), xlab="Correlation coefficients", ylab="Probability", ylim=c(0,4), cex.lab=1.2)
+mtext("Sites", side=3, cex=1.2)
+```
+
+-->
+
+# 3. Including landscape forest cover
+
+After selecting the local forest cover of 400 m radius buffer around each site for all datasets, we included the landscape forest cover (2 km radius buffer around the centroid of the landscape) in the model. 
+
+The R syntax example of this model area as follows:
+
+```
+model <- glmer(cbind(ocor, repl.total-ocor) ~  
+                   local.400 + landscape.2k +
+                   (local.400 + landscape.2k |sp) + 
+                   (1|landscape:sp) + (1|site:sp) + 
+                   (1|landscape) + (1|site),
+                 family=binomial, data=caf.ep)
+```
+
+Before analysing results, we evaluated possible colinearity between local and landscape forest cover using the Variance Inflation Factor with the code provided by John Lefcheck (https://jonlefcheck.net/2012/12/28/dealing-with-multicollinearity-using-variance-inflation-factors/). With VIF we found no evidence of collinearity between the forest cover scales (Table \ref{tab:vif}). 
+
+```{r vif}
+varif <- rbind(vif.mer(mcaf.ep42),vif.mer(mpas.ep42),vif.mer(mcaf.gp42),
+      vif.mer(mpas.gp42)) 
+rownames(varif) <- c("Coffee", "Pasture", "Coffe", "Pasture")
+colnames(varif) <- c("Local", "Landscape")
+
+kable(varif, "latex", booktabs=T, caption= "Variance Inflation Factor index for the variables of local forest cover and landscape forest cover.", digits=2) %>%
+  group_rows("Specialists", 1, 2) %>%
+  group_rows("Generalists", 3,4) 
+```
+
+Predictions of the models are present in Figure \ref{fig:fig.pred42}. It is important to notice the differences in 20 and 40% landscape forest cover predictions for the specialists in the low-quality matrix.
+
+
+```{r modelos42, eval=F}
+mcaf.ep42 <- glmer(cbind(ocor, repl.total-ocor) ~  
+                   fc400 + forest_2k +
+                   (fc400 + forest_2k |sp) + (1|paisagem:sp) + (1|ponto:sp) + 
+                   (1|paisagem) + (1|ponto),
+                 family=binomial, data=caf.ep,
+                  nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                  optCtrl = list(maxfun = 500000)))
+mpas.ep42 <- glmer(cbind(ocor, repl.total-ocor) ~  
+                   fc400 + forest_2k +
+                   (fc400 + forest_2k |sp) + (1|paisagem:sp) + (1|ponto:sp) + 
+                   (1|paisagem) + (1|ponto),
+                 family=binomial, data=pas.ep,
+                  nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                  optCtrl = list(maxfun = 500000)))
+mcaf.gp42 <- glmer(cbind(ocor, repl.total-ocor) ~  
+                   fc400 + forest_2k +
+                   (fc400 + forest_2k |sp) + (1|paisagem:sp) + (1|ponto:sp) + 
+                   (1|paisagem) + (1|ponto),
+                 family=binomial, data=caf.gp,
+                  nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                  optCtrl = list(maxfun = 500000)))
+mpas.gp42 <- glmer(cbind(ocor, repl.total-ocor) ~  
+                   fc400 + forest_2k +
+                   (fc400 + forest_2k |sp) + (1|paisagem:sp) + (1|ponto:sp) + 
+                   (1|paisagem) + (1|ponto),
+                 family=binomial, data=pas.gp,
+                  nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                  optCtrl = list(maxfun = 500000)))
+```
+
+```{r}
+pfc400 <- data.frame(fc400 = seq(min(caf.ep$fc400), max(caf.ep$fc400), length.out=20))
+pfc400$pred <- predict(mcaf.ep4a, newdata=pfc400, re.form=NA, type="response")
+pfc400$cob <- pfc400$fc400*sd(caf.ep$fc400o) + mean(caf.ep$fc400o)
+
+porc <- c(20, 40)
+
+p42 <- expand.grid(fc400 = seq(min(caf.ep$fc400), max(caf.ep$fc400), length.out=10),
+                  forest_2k = (porc - mean(caf.ep$forest_2ko))/sd(caf.ep$forest_2ko))
+p42$pred <- predict(mcaf.ep42, newdata=p42, re.form=NA, type="response")
+p42$cob <- p42$fc400*sd(caf.ep$fc400o) + mean(caf.ep$fc400o)
+p42$cob.paisa <- p42$forest_2k*sd(caf.ep$forest_2ko) + mean(caf.ep$forest_2ko)
+
+loc <- pfc400[,2:3] %>%
+  mutate(cob.paisa=NA, modelo = "4a")
+pais <- p42[,3:5] %>%
+  mutate(modelo ="42")
+
+fcaf.ep <- rbind(loc, pais) %>% mutate(dataset="caf.ep")
+```
+
+```{r}
+pfc400 <- data.frame(fc400 = seq(min(pas.ep$fc400), max(pas.ep$fc400), length.out=20))
+pfc400$pred <- predict(mpas.ep4a, newdata=pfc400, re.form=NA, type="response")
+pfc400$cob <- pfc400$fc400*sd(pas.ep$fc400o) + mean(pas.ep$fc400o)
+porc <- c(20, 40)
+
+p42 <- expand.grid(fc400 = seq(min(pas.ep$fc400), max(pas.ep$fc400), length.out=10),
+                  forest_2k = (porc - mean(pas.ep$forest_2ko))/sd(pas.ep$forest_2ko))
+p42$pred <- predict(mpas.ep42, newdata=p42, re.form=NA, type="response")
+p42$cob <- p42$fc400*sd(pas.ep$fc400o) + mean(pas.ep$fc400o)
+p42$cob.paisa <- p42$forest_2k*sd(pas.ep$forest_2ko) + mean(pas.ep$forest_2ko)
+
+loc <- pfc400[,2:3] %>%
+  mutate(cob.paisa=NA, modelo = "4a")
+pais <- p42[,3:5] %>%
+  mutate(modelo ="42")
+
+fpas.ep <- rbind(loc, pais) %>% mutate(dataset="pas.ep")
+```
+
+```{r}
+pfc400 <- data.frame(fc400 = seq(min(caf.gp$fc400), max(caf.gp$fc400), length.out=20))
+pfc400$pred <- predict(mcaf.gp4a, newdata=pfc400, re.form=NA, type="response")
+pfc400$cob <- pfc400$fc400*sd(caf.gp$fc400o) + mean(caf.gp$fc400o)
+porc <- c(20, 40)
+
+porc <- c(20, 40)
+p42 <- expand.grid(fc400 = seq(min(caf.gp$fc400), max(caf.gp$fc400), length.out=10),
+                  forest_2k = (porc - mean(caf.gp$forest_2ko))/sd(caf.gp$forest_2ko))
+p42$pred <- predict(mcaf.gp42, newdata=p42, re.form=NA, type="response")
+p42$cob <- p42$fc400*sd(caf.gp$fc400o) + mean(caf.gp$fc400o)
+p42$cob.paisa <- p42$forest_2k*sd(caf.gp$forest_2ko) + mean(caf.gp$forest_2ko)
+
+loc <- pfc400[,2:3] %>%
+  mutate(cob.paisa=NA, modelo = "4a")
+pais <- p42[,3:5] %>%
+  mutate(modelo ="42")
+
+fcaf.gp <- rbind(loc, pais) %>% mutate(dataset="caf.gp")
+```
+
+```{r}
+pfc400 <- data.frame(fc400 = seq(min(pas.gp$fc400), max(pas.gp$fc400), length.out=20))
+pfc400$pred <- predict(mpas.gp4a, newdata=pfc400, re.form=NA, type="response")
+pfc400$cob <- pfc400$fc400*sd(pas.gp$fc400o) + mean(pas.gp$fc400o)
+porc <- c(20, 40)
+
+p42 <- expand.grid(fc400 = seq(min(pas.gp$fc400), max(pas.gp$fc400), length.out=10),
+                  forest_2k = (porc - mean(pas.gp$forest_2ko))/sd(pas.gp$forest_2ko))
+p42$pred <- predict(mpas.gp42, newdata=p42, re.form=NA, type="response")
+p42$cob <- p42$fc400*sd(pas.gp$fc400o) + mean(pas.gp$fc400o)
+p42$cob.paisa <- p42$forest_2k*sd(pas.gp$forest_2ko) + mean(pas.gp$forest_2ko)
+
+loc <- pfc400[,2:3] %>%
+  mutate(cob.paisa=NA, modelo = "4a")
+pais <- p42[,3:5] %>%
+  mutate(modelo ="42")
+
+fpas.gp <- rbind(loc, pais) %>% mutate(dataset="pas.gp")
+```
+
+```{r fig.pred42, fig.cap="Predictions of the models without (gray lines) and with landscape forest cover scales (20 percent cover in red and 40 percent cover in blue lines) for specialists and generalists in both regions."}
+labs <- c(caf = "High-quality matrix", pas="Low-quality matrix",
+          ep = "Specialists", gp = "Generalists")
+rbind(fcaf.ep, fpas.ep, fcaf.gp, fpas.gp) %>%
+  separate(dataset, c("matrix", "habitat")) %>%
+  ggplot(aes(x=cob, y=pred, col=as.factor(cob.paisa))) +
+  geom_line() +
+  facet_grid(habitat~matrix, labeller=as_labeller(labs)) +
+  scale_color_discrete("Landscape cover", labels=c("20%", "40%", "only local model")) +
+  scale_x_continuous(limits = c(0,80), name="Local forest cover 400m (%)") +
+  scale_y_continuous("Occurrence probability",
+                     expand=expand_scale(add=0), limits=c(0,0.16)) +
+  theme(panel.spacing = unit(5, "mm")) +
+  geom_hline(yintercept = 0, size=0.8)
+```
+
+
+
+# References
+
+\setlength{\parindent}{0cm}

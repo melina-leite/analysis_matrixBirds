@@ -1,0 +1,198 @@
+---
+title: 'Data preparation'
+subtitle: "from Leite et al."
+classoption: a4paper
+output:
+  pdf_document:
+    toc: no
+header-includes:
+- \usepackage{graphicx}
+- \usepackage{float}
+- \usepackage{setspace}\doublespacing
+- \setlength{\parindent}{4em}
+#- \usepackage{indentfirst}
+- \usepackage{booktabs}
+- \usepackage{longtable}
+- \usepackage{array}
+- \usepackage{multirow}
+- \usepackage{colortbl}
+- \usepackage{pdflscape}
+- \usepackage{tabu}
+- \usepackage{threeparttable}
+- \usepackage{threeparttablex}
+- \usepackage[normalem]{ulem}
+- \usepackage{makecell}
+- \usepackage{placeins}
+- \usepackage[margin=0.8in]{geometry}
+documentclass: article
+---
+
+\fontsize{11}{11}
+\selectfont
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = T, warning = F, fig.align = "center", message = F,
+  error = F, cache = F, fig.pos="H")
+library(knitr)
+library(tidyverse)
+```
+
+Processing the datasets to create a wide formating data for analysis, for each assemblage.
+
+## Species X sites occurrence matrix
+
+```{r}
+data <- read.csv("data/species_site_occ2.csv", check.names=FALSE)
+```
+
+Long format
+```{r}
+data <- data %>% pivot_longer(cols = 3:182, names_to = "sp", values_to="occor")
+str(data)
+```
+
+## Landscape and sites information
+
+```{r}
+env <- read.csv("data/sites_information.csv")
+str(env)
+```
+
+## Species information
+
+```{r}
+sp <- read.csv("data/species_information.csv")
+str(sp)
+```
+
+## Mergin information
+
+```{r}
+dataset <- data %>% left_join(sp[,3:11], "sp") %>% 
+  left_join(env[,],by=c("landscape", "site"))
+```
+
+## Creating assemblages datasets 
+
+Cleaning information columns and standardazing continuous variables for modeling
+
+```{r}
+high.spe <- dataset %>% filter(matrix=="high_quality",
+                               habitat_specif=="specialist") %>%
+  
+            select(landscape,site,sp,n.visit,occor,body_size,diet,nest,stratum,
+                   frugivory,insectivory,lower_stratum,forest_land, 
+                   forest_site400, forest_site600, forest_site800) %>%
+            mutate(lbody_size = as.numeric(scale(log(body_size))),
+                   frugivoryOrig = frugivory,
+                   frugivory = as.numeric(scale(frugivory)),
+                   insectivoryOrig = insectivory,
+                   insectivory = as.numeric(scale(insectivory)),
+                   lower_stratumOrig = lower_stratum,
+                   lower_stratum = as.numeric(scale(lower_stratum)),
+                   forest_landOrig = forest_land,
+                   forest_land = as.numeric(scale(forest_land)),
+                   forest_site400Orig = forest_site400,
+                   forest_site400 = as.numeric(scale(forest_site400)),
+                   forest_site600Orig = forest_site600,
+                   forest_site600 = as.numeric(scale(forest_site600)),
+                   forest_site800Orig = forest_site800,
+                   forest_site800 = as.numeric(scale(forest_site800)),
+                   ) %>% as.data.frame()
+
+high.gen <- dataset %>% filter(matrix=="high_quality",
+                               habitat_specif=="generalist")%>%
+            select(landscape,site,sp,n.visit,occor,body_size,diet,nest,stratum,
+                   frugivory,insectivory,lower_stratum,forest_land, 
+                   forest_site400, forest_site600, forest_site800)%>%
+            mutate(lbody_size = as.numeric(scale(log(body_size))),
+                   frugivoryOrig = frugivory,
+                   frugivory = as.numeric(scale(frugivory)),
+                   insectivoryOrig = insectivory,
+                   insectivory = as.numeric(scale(insectivory)),
+                   lower_stratumOrig = lower_stratum,
+                   lower_stratum = as.numeric(scale(lower_stratum)),
+                   forest_landOrig = forest_land,
+                   forest_land = as.numeric(scale(forest_land)),
+                   forest_site400Orig = forest_site400,
+                   forest_site400 = as.numeric(scale(forest_site400)),
+                   forest_site600Orig = forest_site600,
+                   forest_site600 = as.numeric(scale(forest_site600)),
+                   forest_site800Orig = forest_site800,
+                   forest_site800 = as.numeric(scale(forest_site800)),
+                   ) %>% as.data.frame()
+
+low.spe <- dataset %>% filter(matrix=="low_quality",
+                              habitat_specif=="specialist")%>%
+            select(landscape,site,sp,n.visit,occor,body_size,diet,nest,stratum,
+                   frugivory,insectivory,lower_stratum,forest_land, 
+                   forest_site400, forest_site600, forest_site800)%>%
+            mutate(lbody_size = as.numeric(scale(log(body_size))),
+                   frugivoryOrig = frugivory,
+                   frugivory = as.numeric(scale(frugivory)),
+                   insectivoryOrig = insectivory,
+                   insectivory = as.numeric(scale(insectivory)),
+                   lower_stratumOrig = lower_stratum,
+                   lower_stratum = as.numeric(scale(lower_stratum)),
+                   forest_landOrig = forest_land,
+                   forest_land = as.numeric(scale(forest_land)),
+                   forest_site400Orig = forest_site400,
+                   forest_site400 = as.numeric(scale(forest_site400)),
+                   forest_site600Orig = forest_site600,
+                   forest_site600 = as.numeric(scale(forest_site600)),
+                   forest_site800Orig = forest_site800,
+                   forest_site800 = as.numeric(scale(forest_site800)),
+                   ) %>% as.data.frame()
+
+low.gen <- dataset %>% filter(matrix=="low_quality",
+                              habitat_specif=="generalist")%>%
+            select(landscape,site,sp,n.visit,occor,body_size,diet,nest,stratum,
+                   frugivory,insectivory,lower_stratum,forest_land, 
+                   forest_site400, forest_site600, forest_site800)%>%
+            mutate(lbody_size = as.numeric(scale(log(body_size))),
+                   frugivoryOrig = frugivory,
+                   frugivory = as.numeric(scale(frugivory)),
+                   insectivoryOrig = insectivory,
+                   insectivory = as.numeric(scale(insectivory)),
+                   lower_stratumOrig = lower_stratum,
+                   lower_stratum = as.numeric(scale(lower_stratum)),
+                   forest_landOrig = forest_land,
+                   forest_land = as.numeric(scale(forest_land)),
+                   forest_site400Orig = forest_site400,
+                   forest_site400 = as.numeric(scale(forest_site400)),
+                   forest_site600Orig = forest_site600,
+                   forest_site600 = as.numeric(scale(forest_site600)),
+                   forest_site800Orig = forest_site800,
+                   forest_site800 = as.numeric(scale(forest_site800)),
+                   ) %>% as.data.frame()
+```
+
+selecting only the species that occur in the landscapes
+```{r}
+sp.high.spe <- high.spe %>% group_by(sp) %>% summarise(n=sum(occor)) %>% 
+  filter(n>0) %>% select(sp)
+high.spe <- high.spe %>%filter(sp %in% sp.high.spe$sp)
+
+sp.high.gen <- high.gen %>% group_by(sp) %>% summarise(n=sum(occor)) %>% 
+  filter(n>0) %>% select(sp)
+high.gen <- high.gen %>%filter(sp %in% sp.high.gen$sp)
+
+sp.low.spe <- low.spe %>% group_by(sp) %>% summarise(n=sum(occor)) %>% 
+  filter(n>0) %>% select(sp)
+low.spe <- low.spe %>%filter(sp %in% sp.low.spe$sp)
+
+sp.low.gen <- low.gen %>% group_by(sp) %>% summarise(n=sum(occor)) %>% 
+  filter(n>0) %>% select(sp)
+low.gen <- low.gen %>%filter(sp %in% sp.low.gen$sp)
+```
+
+
+## Saving datasets
+
+```{r}
+save(env, high.spe, high.gen,low.spe,low.gen, file="datasets.Rdata")
+```
+
+

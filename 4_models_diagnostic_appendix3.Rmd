@@ -1,0 +1,559 @@
+---
+title: "Appendix 3: Models with traits"
+#subtitle: "Supplementary material of Leite et al. 2019"
+#author: "Melina de Souza Leite"
+#date: "`r format(Sys.time(), '%d de %B de %Y')`"
+bibliography: refs_appendix.bib
+csl: journal-of-zoology.csl
+output:
+  pdf_document:
+    highlight: zenburn
+    toc: no
+documentclass: article
+classoption: a4paper
+header-includes:
+    - \usepackage{graphicx}
+    - \usepackage{float}
+    - \usepackage{setspace}\doublespacing
+    - \setlength{\parindent}{4em}
+    - \usepackage{indentfirst}
+    - \usepackage{booktabs}
+    - \usepackage{longtable}
+    - \usepackage{array}
+    - \usepackage{multirow}
+    - \usepackage[table]{xcolor}
+    - \usepackage{colortbl}
+    - \usepackage{pdflscape}
+    - \usepackage{tabu}
+    - \usepackage{threeparttable}
+    - \usepackage{threeparttablex}
+    - \usepackage[normalem]{ulem}
+    - \usepackage{makecell}
+    - \usepackage{placeins}
+    - \usepackage[margin=0.8in]{geometry}
+---
+
+\fontsize{11}{11}
+\selectfont
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = F, warning = F, fig.align = "center", message = F,
+  error = F, cache = T, fig.pos="H")
+
+library(knitr)
+library(tidyverse); library(cowplot); library(patchwork)
+theme_set(theme_cowplot)
+library(lme4); library(bbmle)
+library(corrplot)
+library(GGally)
+options(kableExtra.latex.load_packages = FALSE)
+library(kableExtra)
+library(corrplot)
+library(janitor)
+library(DHARMa)
+```
+
+```{r}
+#carregando os dados
+load("dados_abund_amb_trait.Rdata") 
+load("dados_modelos.Rdata") 
+source("r.quad_modelos.R" )
+load("modelos_atributo.Rdata") # modelos de atributos deste script
+load("modelos_atributos_vif.Rdata") # modelos colinearidade
+load("modelos_coberturas.Rdata") # modelos de cobertura de 5b_modelos_cobertura
+load("modelos_teste_hip5.Rdata") # modelos c atributos outra escala
+```
+
+```{r}
+vif.mer <- function (fit) {
+    ## adapted from rms::vif
+    v <- vcov(fit)
+    nam <- names(fixef(fit))
+    ## exclude intercepts
+    ns <- sum(1 * (nam == "Intercept" | nam == "(Intercept)"))
+    if (ns > 0) {
+        v <- v[-(1:ns), -(1:ns), drop = FALSE]
+        nam <- nam[-(1:ns)]
+    }
+    d <- diag(v)^0.5
+    v <- diag(solve(v/(d %o% d)))
+    names(v) <- nam
+    v
+}
+```
+
+# 1. Models with traits
+
+**Specification of the models:** We used `lme4` package to perform a GLMM with binomial (proportion) distribution. An example of the code for each dataset are as follows:
+
+```
+model <- glmer(cbind(ocor, repl.total-ocor) ~  
+                   forest.cover + trait + forest.cover:trait + 
+                   (forest.cover |sp) + (1|landscape:sp) + (1|site:sp) + 
+                   (trait|landscape) + (trait|site),
+                 family=binomial, data=caf.ep,
+                  nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                  optCtrl = list(maxfun = 500000)))
+```
+
+We ran separate models for each assemblage and trait. Afterwards, we ran one model with the combination of the traits body mass, diet, nest type and % of lower strata use. Table \ref{tab:tabr2} shows the marginal R^2^ of the models terms.
+
+```{r}
+cafe.espe4a <- rbind(r.quad(bndgcaf.ep4a, c("fc400")), 
+                   r.quad(bodycaf.ep4a, c("fc400")), 
+                   r.quad(ninhocaf.ep4a, c("fc400")),
+                   r.quad(dietacaf.ep4a, c("fc400")),
+                   r.quad(frugicaf.ep4a, c("fc400")),
+                   r.quad(insecaf.ep4a, c("fc400")),
+                   r.quad(groucaf.ep4a, c("fc400")),
+                   r.quad(estracaf.ep4a, c("fc400"))) %>%
+  mutate(atributo = rep(c("Combined", "body mass", "nest type", "main diet", 
+                          "% frugivory", "% insetivory","% lower strata", 
+                          "foraging stratum"),each=7)) %>%
+  spread(componente, valores) %>%
+  mutate(atributo = fct_relevel(atributo, "Combined", "body mass", "nest type", 
+                                "main diet", "% frugivory", "% insetivory",
+                          "% lower strata", "foraging stratum")) %>%
+  arrange(atributo) %>%
+  mutate_if(is.numeric, round, digits=2)
+colnames(cafe.espe4a) <- c("Model", "Total", "trait*env", "trati|lands","lands:sp", "traint|site", "site:sp",  "env|sp")
+
+pase.espe42 <- rbind(r.quad(bndgpas.ep42, c("fc400", "forest_2k")), 
+                   r.quad(bodypas.ep42, c("fc400", "forest_2k")), 
+                   r.quad(ninhopas.ep42, c("fc400", "forest_2k")),
+                   r.quad(dietapas.ep42, c("fc400", "forest_2k")),
+                   r.quad(frugipas.ep42, c("fc400", "forest_2k")),
+                   r.quad(insepas.ep42, c("fc400", "forest_2k")),
+                   r.quad(groupas.ep42, c("fc400", "forest_2k")),
+                   r.quad(estrapas.ep42, c("fc400", "forest_2k"))) %>%
+mutate(atributo = rep(c("Combined", "body mass", "nest type", "main diet", 
+                          "% frugivory", "% insetivory","% lower strata", 
+                          "foraging stratum"),each=7)) %>%
+  spread(componente, valores) %>%
+  mutate(atributo = fct_relevel(atributo, "Combined", "body mass", "nest type", 
+                                "main diet", "% frugivory", "% insetivory",
+                          "% lower strata", "foraging stratum")) %>%
+  arrange(atributo) %>%
+  mutate_if(is.numeric, round, digits=2)
+colnames(pase.espe42) <- c("Model", "Total", "trait*env", "trati|lands", "lands:sp", "traint|site", "site:sp",  "env|sp")
+
+cafe.gene4a <- rbind(r.quad(bndgcaf.gp4a, c("fc400")), 
+                   r.quad(bodycaf.gp4a, c("fc400")), 
+                   r.quad(ninhocaf.gp4a, c("fc400")),
+                   r.quad(dietacaf.gp4a, c("fc400")),
+                   r.quad(frugicaf.gp4a, c("fc400")),
+                   r.quad(insecaf.gp4a, c("fc400")),
+                   r.quad(groucaf.gp4a, c("fc400")),
+                   r.quad(estracaf.gp4a, c("fc400"))) %>%
+  mutate(atributo = rep(c("Combined", "body mass", "nest type", "main diet", 
+                          "% frugivory", "% insetivory","% lower strata", 
+                          "foraging stratum"),each=7)) %>%
+  spread(componente, valores) %>%
+  mutate(atributo = fct_relevel(atributo, "Combined", "body mass", "nest type", 
+                                "main diet", "% frugivory", "% insetivory",
+                          "% lower strata", "foraging stratum")) %>%
+  arrange(atributo) %>%
+  mutate_if(is.numeric, round, digits=2)
+colnames(cafe.gene4a) <- c("Model", "Total", "trait*env", "trati|lands","lands:sp","traint|site", "site:sp",  "env|sp")
+
+pase.gene4a <- rbind(r.quad(bndgpas.gp4a, c("fc400")), 
+                   r.quad(bodypas.gp4a, c("fc400")), 
+                   r.quad(ninhopas.gp4a, c("fc400")),
+                   r.quad(dietapas.gp4a, c("fc400")),
+                   r.quad(frugipas.gp4a, c("fc400")),
+                   r.quad(insepas.gp4a, c("fc400")),
+                   r.quad(groupas.gp4a, c("fc400")),
+                   r.quad(estrapas.gp4a, c("fc400"))) %>%
+  mutate(atributo = rep(c("Combined", "body mass", "nest type", "main diet", 
+                          "% frugivory", "% insetivory","% lower strata", 
+                          "foraging stratum"),each=7)) %>%
+  spread(componente, valores) %>%
+  mutate(atributo = fct_relevel(atributo, "Combined", "body mass", "nest type", 
+                                "main diet", "% frugivory", "% insetivory",
+                          "% lower strata", "foraging stratum")) %>%
+  arrange(atributo) %>%
+  mutate_if(is.numeric, round, digits=2)
+colnames(pase.gene4a) <- c("Model", "Total", "trait*env", "trati|lands","lands:sp","traint|site", "site:sp",  "env|sp")
+```
+
+```{r, tabr2}
+todos <- rbind(cafe.espe4a[,c(1:3,8,5,7,4,6)], pase.espe42[,c(1:3,8,5,7,4,6)], cafe.gene4a[,c(1:3,8,5,7,4,6)], pase.gene4a[,c(1:3,8,5,7,4,6)])
+todos <- todos %>% mutate_if(is.numeric, function(x)x*100) 
+
+kable(todos, "latex", booktabs=T, caption= "Overall and marginal R-squared of trait models in each dataset. For the marginal R-squared terms see Table 2 (main text).") %>%
+   group_rows("Specialists", 1, 16) %>%
+   group_rows("     Coffee matrix", 1,8) %>%
+   group_rows("     Pasture matrix", 9,16) %>%
+   group_rows("Generalists", 17, 32) %>%
+   group_rows("     Coffee matrix", 17,24) %>%
+   group_rows("     Pasture matrix", 25,32)
+```
+
+```{r}
+inter <- data.frame(intercepto = c(r.quad(mcaf.ep4a, "fc400")[2,2],
+                                   r.quad(mpas.ep42, c("fc400", "forest_2k"))[2,2],
+                                   r.quad(mcaf.gp4a, "fc400")[2,2],
+                                   r.quad(mpas.gp4a, "fc400")[2,2]),
+                    matrix=c("Coffee matrix", "Pasture matrix", "Coffee matrix", "Pasture matrix"),
+                    habitat = c("Specialists", "Specialists", "Generalists",
+                                "Generalists"),
+                   term = rep("fixed",4),
+                    xis = c(-Inf, -Inf, -Inf, -Inf)) %>%
+  mutate(intercepto = intercepto*100)
+```
+
+<!--
+```{r fig.r2,eval=F, fig.height=6, fig.cap="Partial R-squared for the environmental filter terms (fixed effects and random intercept and slope for the species) for the models with traits in each dataset. Baseline values are the fixed effects R-squared for the models without traits (only environmental gradient variables)."}
+fig.atr <- todos %>% select(Model, fixed, `env.sp`) %>% 
+  mutate(matrix = rep(c("Coffee matrix", "Pasture matrix", "Coffee matrix", "Pasture matrix"),each=8),
+         habitat = rep(c("Specialists", "Generalists"), each=16)) %>%
+  mutate(Model = fct_relevel(Model, "body", "ninho", "dieta", "frugi",
+                                "inse", "estra", "grou", "Combined")) %>%
+  gather("term", "R2", 2:3)
+  
+ggplot(fig.atr, aes(x=Model, y=R2,fill=term)) + geom_col() +
+  geom_hline(data=inter, aes(yintercept = intercepto), linetype="dashed",
+             col="blue") +
+  facet_grid(habitat~matrix) + ylim(0,70) +
+  theme(axis.text.x = element_text(angle=45, hjust=1)) +
+  geom_text(data = fig.atr[fig.atr$term == "fixed",],
+            aes(label=round(R2,2), y=R2+2), size=3) +
+  geom_text(data=inter, aes(x = xis, y = 64,  
+                            label = paste("baseline = ",round(intercepto,2))),
+            hjust = -0.1, vjust  = -0.1, col='blue', size=3)
+```
+-->
+
+# 2. Comparing models with trait-environment interactions at local and landscape scale
+
+To evaluate trait-environment relationships at the landscape scale for each dataset, we compared two models with traits as predictors: one combining only local forest cover interactions with traits, and the other with the local and the landscape forest cover interactions with traits. 
+
+The results were similar with the models without traits (Appendix 3 and Table 3 in the main text) and are presented in Table \ref{tab:tab.comp}. Only specialists species selected the model with the landscape forest cover interactions with traits.
+
+It is interesting to notice that the total R^2^ of the models did not change comparing with the models without trais as predictors (Table 3 main text). The differences are in the fixed effects and random intercept and slope for the species (_env.sp_), where some part of the variance explained by these random effects is transfered to the fixed effects when traits are include in the models. 
+
+```{r}
+aicaf.ep <- AICtab(bndgcaf.ep4a, bndgcaf.ep42, sort=F)
+class(aicaf.ep) <- "data.frame"
+aipas.ep <- AICtab(bndgpas.ep4a, bndgpas.ep42, sort=F)
+class(aipas.ep) <- "data.frame"
+aicaf.gp <- AICtab(bndgcaf.gp4a, bndgcaf.gp42, sort=F)
+class(aicaf.gp) <- "data.frame"
+aipas.gp <- AICtab(bndgpas.gp4a, bndgpas.gp42, sort=F)
+class(aipas.gp) <- "data.frame"
+
+land <- rbind(aicaf.ep, aipas.ep, aicaf.gp, aipas.gp) %>%
+  mutate(dataset = rep(c("caf.ep", "pas.ep", "caf.gp", "pas.gp"), each=2),
+         model = rep(c("Local", "Local + landscape"),4)) %>% select(-df) %>%
+  spread(model, dAIC) %>% select(dataset, `Local`, `Local + landscape`) %>%
+  mutate(habitat= rep(c("Specialist", "Generalist"), 2),
+         matrix = rep(c("Coffee", "Pasture"), each=2)) 
+
+r2caf.ep <- data.frame(r.quad(bndgcaf.ep4a, "fc400"),
+                       m42 = r.quad(bndgcaf.ep42, c("fc400", "forest_2k"))[,2]) %>%
+  mutate_if(is.numeric, round, digits=2)
+colnames(r2caf.ep)[2] <- "m4a"
+rownames(r2caf.ep) <- r2caf.ep$componente
+r2pas.ep <- data.frame(r.quad(bndgpas.ep4a, "fc400"),
+                       m42 = r.quad(bndgpas.ep42, c("fc400", "forest_2k"))[,2]) %>%
+  mutate_if(is.numeric, round, digits=2)
+colnames(r2pas.ep)[2] <- "m4a"
+rownames(r2pas.ep) <- r2pas.ep$componente
+r2caf.gp <- data.frame(r.quad(bndgcaf.gp4a, "fc400"),
+                       m42 = r.quad(bndgcaf.gp42, c("fc400", "forest_2k"))[,2]) %>%
+  mutate_if(is.numeric, round, digits=2)
+colnames(r2caf.gp)[2] <- "m4a"
+rownames(r2caf.gp) <- r2caf.gp$componente
+r2pas.gp <- data.frame(r.quad(bndgpas.gp4a, "fc400"),
+                       m42 = r.quad(bndgpas.gp42, c("fc400", "forest_2k"))[,2]) %>%
+  mutate_if(is.numeric, round, digits=2)
+colnames(r2pas.gp)[2] <- "m4a"
+rownames(r2pas.gp) <- r2pas.gp$componente
+
+tudo <- rbind(t(r2caf.ep[,-1]), t(r2pas.ep[,-1]), t(r2caf.gp[,-1]), t(r2pas.gp[,-1]))
+rownames(tudo) <- rep(c("Local", "Local+landscape"), 4)
+tudo <- tudo *100  
+```
+
+```{r tab.comp}
+tuds <- as.data.frame(tudo)
+tuds$dataset <- rep(c("caf.ep", "pas.ep", "caf.gp", "pas.gp"), each=2)
+tuds$model <- rep(c("Local", "Local + landscape"),4)
+
+aices <- rbind(aicaf.ep, aipas.ep, aicaf.gp, aipas.gp) %>%
+  mutate(dataset = rep(c("caf.ep", "pas.ep", "caf.gp", "pas.gp"), each=2),
+         model = rep(c("Local", "Local + landscape"),4),
+         dAIC = round(dAIC, 2))
+
+tabela <-left_join(tuds, aices, by=c("dataset", "model"))
+colnames(tabela) <- c("Total", "trait*env","env|sp", "lands:sp", "site:sp", "trait|lands", "trait|site", "dataset", "Model", "dAIC", "df")
+
+kable(tabela[,c(9,1:7,10:11)], "latex", booktabs=T, row.names = F,
+      caption= "Overall and marginal R-squared and deltaAIC comparisons of models with traits interacting with only local forest cover and with local and landscape forest cover as predictors of the probability of occurrence in each dataset.") %>%
+  kable_styling() %>%
+  group_rows("Forest specialists", 1, 4) %>%
+  group_rows("      Coffe matrix", 1,2) %>%
+  group_rows("      Pasture matrix", 3,4) %>%
+  group_rows("Forest generalists", 5, 8) %>%
+  group_rows("      Coffe matrix", 5,6) %>%
+  group_rows("      Pasture matrix", 7,8) %>%
+  add_header_above(c(" " = 2, "Marginal R-squared" = 6, "AIC"= 2))  
+```
+
+
+
+# 3. Models diagnostic
+
+Variance Inflation Factor of the model parameters for each dataset in Table \ref{tab:vif3}.
+
+```{r vif3}
+vifcaf.ep <- data.frame(termo = names(vif.mer(bndgcaf.ep4av)),
+                        caf.ep =vif.mer(bndgcaf.ep4av))
+vifpas.ep <- data.frame(termo = names(vif.mer(bndgpas.ep42v)),
+                        pas.ep =vif.mer(bndgpas.ep42v))
+vifcaf.gp <- data.frame(termo = names(vif.mer(bndgcaf.gp4av)),
+                        caf.gp =vif.mer(bndgcaf.gp4av))
+vifpas.gp <- data.frame(termo = names(vif.mer(bndgpas.gp4av)),
+                        pas.gp =vif.mer(bndgpas.gp4av))
+varif <- vifcaf.ep %>% full_join(vifpas.ep, "termo") %>% 
+  full_join(vifcaf.gp, "termo") %>% full_join(vifpas.gp, "termo")
+varif$termo <- c("forest.local", "body_mass", "nest_closed", "nest_open_semi",
+                 "diet_insectivorous", "diet_onivorous", "lower_strata", 
+                 "diet_granivorous", "forest.landscape", "diet_nectarivorous")
+colnames(varif) <-c("parameter","Coffee", "Pasture", "Coffee", "Pasture")
+
+kable(varif, "latex", booktabs=T, caption= "Variance Inflation Factor index for combined traits models in each dataset.", digits=2) %>%
+ add_header_above(c(" " = 1, "Specialists" = 2, "Generalists"= 2))
+```
+
+\FloatBarrier
+
+Example of the residual diagnostic of the model with the combined traits (main diet, body mass, nest type and % of lower strata use) for the forest specialists in the high quality matrix region. The models' diagnostics for the other assemblages were all similar.
+
+
+## Residual correlations among species and sites
+
+Below we present the residual Kendall correlations among species for the models using the predictions for `site:sp` random effect (Observation Level Random Effect). For the residual correlations we followed the code provided by @miller_functional_2018.
+
+```{r, fig.height=4}
+nsites = 40
+nspp = length(unique(caf.ep$sp))
+dat <- caf.ep
+
+dat$resid <- as.matrix(ranef(bndgcaf.ep4a)$`ponto:sp`)
+X <- matrix(dat$resid, nrow=nsites, ncol=nspp, byrow=F)
+rownames(X) <- unique(dat$ponto)
+colnames(X) <- unique(dat$sp)
+
+# species correlations
+corrs.sp <- cor(X, method="kendall")
+for(i in 1:nspp) corrs.sp[i,i] <- NA
+
+# site correlations
+corrs.site <- cor(t(X), method="kendall")
+for(i in 1:nsites) corrs.site[i,i] <- NA
+```
+
+Range of species correlations: `r round(range(corrs.sp, na.rm=T),2)`. Range of sites correlations: `r round(range(corrs.site, na.rm=T),2)`. 
+
+```{r, fig.height=4, fig.cap="Species residual Kendall correlations for the specialist species in the coffee matrix region."}
+corrplot(corrs.sp, method="square", type="upper",diag=F,tl.cex=0.5,cl.cex=0.5)
+```
+
+```{r, fig.height=3, fig.cap="Sites residual Kendall correlations for the specialist species in the coffee matrix region."}
+corrplot(corrs.site, method="square", type="upper",diag=F,tl.cex=0.5,cl.cex=0.5)
+```
+
+```{r, fig.height=4, fig.cap= "Histograms of the residual Kendall correlations for the specialists species in the coffee matrix region."}
+x.sp <- matrix(corrs.sp, ncol=1)
+x.site <- matrix(corrs.site, ncol=1)
+x.sp <- x.sp[!is.na(x.sp)]
+x.site <- x.site[!is.na(x.site)]
+
+# Figure histogram
+par(mfrow=c(1,2), mai=c(1,1,.5,.2))
+hist(corrs.sp, main="", probability=T, breaks=.1*(-10:10), xlab="Correlation coefficients", ylab="Probability", ylim=c(0,4), cex.lab=1.2)
+mtext("Species", side=3,cex=1.2)
+
+hist(corrs.site, main="", probability=T, breaks=.1*(-10:10), xlab="Correlation coefficients", ylab="Probability", ylim=c(0,4), cex.lab=1.2)
+mtext("Sites", side=3, cex=1.2)
+```
+
+
+<!--
+### Forest specialist species in pasture matrix 
+
+```{r}
+summary(bndgpas.ep42)
+```
+
+```{r, fig.height=4}
+nsites = 52
+nspp = length(unique(pas.ep$sp))
+dat <- pas.ep
+
+dat$resid <- as.matrix(ranef(bndgpas.ep42)$`ponto:sp`)
+X <- matrix(dat$resid, nrow=nsites, ncol=nspp, byrow=F)
+rownames(X) <- unique(dat$ponto)
+colnames(X) <- unique(dat$sp)
+
+# species correlations
+corrs.sp <- cor(X, method="kendall")
+for(i in 1:nspp) corrs.sp[i,i] <- NA
+
+# site correlations
+corrs.site <- cor(t(X), method="kendall")
+for(i in 1:nsites) corrs.site[i,i] <- NA
+```
+
+Range of species correlations: `r round(range(corrs.sp, na.rm=T),2)`. Range of sites correlations: `r round(range(corrs.site, na.rm=T),2)`.
+
+```{r, fig.height=4, fig.cap="Species residual Kendall correlations for the specialist species in the pasture matrix region."}
+corrplot(corrs.sp, method="square", type="upper",diag=F,tl.cex=0.5,cl.cex=0.5)
+```
+
+```{r, fig.height=3, fig.cap="Sites residual Kendall correlations for the specialist species in the coffee matrix region."}
+corrplot(corrs.site, method="square", type="upper",diag=F,tl.cex=0.5,cl.cex=0.5)
+```
+
+```{r, fig.height=4, fig.cap= "Histograms of the residual Kendall correlations for the specialists species in the pasture matrix region."}
+x.sp <- matrix(corrs.sp, ncol=1)
+x.site <- matrix(corrs.site, ncol=1)
+x.sp <- x.sp[!is.na(x.sp)]
+x.site <- x.site[!is.na(x.site)]
+
+# Figure histogram
+par(mfrow=c(1,2), mai=c(1,1,.5,.2))
+hist(corrs.sp, main="", probability=T, breaks=.1*(-10:10), xlab="Correlation coefficients", ylab="Probability", ylim=c(0,4), cex.lab=1.2)
+mtext("Species", side=3,cex=1.2)
+
+hist(corrs.site, main="", probability=T, breaks=.1*(-10:10), xlab="Correlation coefficients", ylab="Probability", ylim=c(0,4), cex.lab=1.2)
+mtext("Sites", side=3, cex=1.2)
+```
+
+### Forest generalist species in coffee matrix 
+
+```{r}
+summary(bndgcaf.gp4a)
+```
+
+```{r, fig.height=4}
+nsites = 40
+nspp = length(unique(caf.gp$sp))
+dat <- caf.gp
+
+dat$resid <- as.matrix(ranef(bndgcaf.gp4a)$`ponto:sp`)
+X <- matrix(dat$resid, nrow=nsites, ncol=nspp, byrow=F)
+rownames(X) <- unique(dat$ponto)
+colnames(X) <- unique(dat$sp)
+
+# species correlations
+corrs.sp <- cor(X, method="kendall")
+for(i in 1:nspp) corrs.sp[i,i] <- NA
+
+# site correlations
+corrs.site <- cor(t(X), method="kendall")
+for(i in 1:nsites) corrs.site[i,i] <- NA
+```
+
+Range of species correlations: `r round(range(corrs.sp, na.rm=T),2)`. Range of sites correlations: `r round(range(corrs.site, na.rm=T),2)`.
+
+```{r, fig.height=4, fig.cap="Species residual Kendall correlations for the generalist species in the coffee matrix region."}
+corrplot(corrs.sp, method="square", type="upper",diag=F,tl.cex=0.5,cl.cex=0.5)
+```
+
+```{r, fig.height=3, fig.cap="Sites residual Kendall correlations for the generalist species in the coffee matrix region."}
+corrplot(corrs.site, method="square", type="upper",diag=F,tl.cex=0.5,cl.cex=0.5)
+```
+
+```{r, fig.height=4, fig.cap= "Histograms of the residual Kendall correlations for the generalist species in the coffee matrix region."}
+x.sp <- matrix(corrs.sp, ncol=1)
+x.site <- matrix(corrs.site, ncol=1)
+x.sp <- x.sp[!is.na(x.sp)]
+x.site <- x.site[!is.na(x.site)]
+
+# Figure histogram
+par(mfrow=c(1,2), mai=c(1,1,.5,.2))
+hist(corrs.sp, main="", probability=T, breaks=.1*(-10:10), xlab="Correlation coefficients", ylab="Probability", ylim=c(0,4), cex.lab=1.2)
+mtext("Species", side=3,cex=1.2)
+
+hist(corrs.site, main="", probability=T, breaks=.1*(-10:10), xlab="Correlation coefficients", ylab="Probability", ylim=c(0,4), cex.lab=1.2)
+mtext("Sites", side=3, cex=1.2)
+```
+
+### Forest generalist species in pasture matrix 
+
+```{r}
+summary(bndgpas.gp4a)
+```
+
+```{r, fig.height=4}
+nsites = 52
+nspp = length(unique(pas.gp$sp))
+dat <- pas.gp
+
+dat$resid <- as.matrix(ranef(bndgpas.gp4a)$`ponto:sp`)
+X <- matrix(dat$resid, nrow=nsites, ncol=nspp, byrow=F)
+rownames(X) <- unique(dat$ponto)
+colnames(X) <- unique(dat$sp)
+
+# species correlations
+corrs.sp <- cor(X, method="kendall")
+for(i in 1:nspp) corrs.sp[i,i] <- NA
+
+# site correlations
+corrs.site <- cor(t(X), method="kendall")
+for(i in 1:nsites) corrs.site[i,i] <- NA
+```
+
+Range of species correlations: `r round(range(corrs.sp, na.rm=T),2)`. Range of sites correlations: `r round(range(corrs.site, na.rm=T),2)`. 
+
+```{r, fig.height=4, fig.cap="Species residual Kendall correlations for the generalist species in the pasture matrix region."}
+corrplot(corrs.sp, method="square", type="upper",diag=F,tl.cex=0.5,cl.cex=0.5)
+```
+
+```{r, fig.height=3, fig.cap="Sites residual Kendall correlations for the generalist species in the pasture matrix region."}
+corrplot(corrs.site, method="square", type="upper",diag=F,tl.cex=0.5,cl.cex=0.5)
+```
+
+```{r, fig.height=4, fig.cap= "Histograms of the residual Kendall correlations for the generalists species in the pasture matrix region."}
+x.sp <- matrix(corrs.sp, ncol=1)
+x.site <- matrix(corrs.site, ncol=1)
+x.sp <- x.sp[!is.na(x.sp)]
+x.site <- x.site[!is.na(x.site)]
+
+# Figure histogram
+par(mfrow=c(1,2), mai=c(1,1,.5,.2))
+hist(corrs.sp, main="", probability=T, breaks=.1*(-10:10), xlab="Correlation coefficients", ylab="Probability", ylim=c(0,4), cex.lab=1.2)
+mtext("Species", side=3,cex=1.2)
+
+hist(corrs.site, main="", probability=T, breaks=.1*(-10:10), xlab="Correlation coefficients", ylab="Probability", ylim=c(0,4), cex.lab=1.2)
+mtext("Sites", side=3, cex=1.2)
+```
+
+-->
+
+## Residual diagnostic
+
+Using DHARMa package (@hartig_dharma:_2018) for the test of uniformity of quantile residuals. 
+
+```{r}
+resce <- simulateResiduals(bndgcaf.ep4a, n=1000, ref.form=~0)
+plot(resce)
+```
+
+Residuals against predictors:
+
+```{r, fig.height=8}
+par(mfrow=c(3,2))
+plotResiduals(resce, caf.ep$fc400, xlab="Local forest cover 400m")
+plotResiduals(resce, caf.ep$lbody_size, xlab="Body size")
+plotResiduals(resce, caf.ep$ninho, xlab="Nest type")
+plotResiduals(resce, caf.ep$dieta, xlab="Main diet")
+plotResiduals(resce, caf.ep$grou, xlab="% lower strata use")
+```
+
+
+# References
