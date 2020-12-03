@@ -76,7 +76,7 @@ dataset <- data %>% left_join(sp[,3:11], "sp") %>%
 
 ## Creating assemblages datasets 
 
-Cleaning information columns and standardazing continuous variables for modeling
+Cleaning information columns and standardazing continuous variables for modeling.
 
 ```{r}
 high.spe <- dataset %>% filter(matrix=="high_quality",
