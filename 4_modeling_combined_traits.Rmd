@@ -1,0 +1,118 @@
+---
+title: "Final models traits - forest cover at local and landscape scale"
+author: "Melina Leite"
+date: "`r format(Sys.time(), '%d de %B de %Y')`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: false
+    fig_heigth: 20
+  pdf_document:
+    highlight: tango
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = T, warning = F, fig.align = "center", message = F,
+  error = F, cache = T, fig.pos="H")
+
+library(knitr)
+library(tidyverse); library(cowplot); library(patchwork)
+library(lme4); library(bbmle)
+theme_set(theme_cowplot())
+```
+
+
+Loading auxiliary function for R2 calculations
+```{r}
+source("r2_auxiliary_function.R")
+```
+
+Loading data
+```{r}
+load("datasets.Rdata")
+# saved models results
+load("models_outputs/models_combined.Rdata")
+```
+
+
+# Combined traits models
+
+
+```{r, eval=F}
+mhigh.spe <- glmer(cbind(occor, n.visit-occor) ~  
+                    forest_site400*lbody_size + 
+                    forest_site400*nest +
+                    forest_site400*diet + 
+                    forest_site400*lower_stratum +
+                    forest_land*lbody_size + 
+                    forest_land*nest + 
+                    forest_land*diet +
+                    forest_land*lower_stratum + 
+                    (forest_site400 + forest_land|sp) + 
+                    (1|landscape:sp) + (1|site:sp) + 
+                    (lbody_size + nest + diet + lower_stratum|landscape) +
+                    (lbody_size + nest + diet + lower_stratum|site),
+                    family=binomial, data=high.spe,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 500000)))
+
+
+mlow.spe <- glmer(cbind(occor, n.visit-occor) ~  
+                    forest_site400*lbody_size + 
+                    forest_site400*nest +
+                    forest_site400*diet + 
+                    forest_site400*lower_stratum +
+                    forest_land*lbody_size + 
+                    forest_land*nest + 
+                    forest_land*diet +
+                    forest_land*lower_stratum + 
+                    (forest_site400 + forest_land|sp) + 
+                    (1|landscape:sp) + (1|site:sp) + 
+                    (lbody_size + nest + diet + lower_stratum|landscape) +
+                    (lbody_size + nest + diet + lower_stratum|site),
+                    family=binomial, data=low.spe,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 500000)))
+
+
+mhigh.gen <- glmer(cbind(occor, n.visit-occor) ~  
+                    forest_site400*lbody_size + 
+                    forest_site400*nest +
+                    forest_site400*diet + 
+                    forest_site400*lower_stratum +
+                    forest_land*lbody_size + 
+                    forest_land*nest + 
+                    forest_land*diet +
+                    forest_land*lower_stratum + 
+                    (forest_site400 + forest_land|sp) + 
+                    (1|landscape:sp) + (1|site:sp) + 
+                    (lbody_size + nest + diet + lower_stratum|landscape) +
+                    (lbody_size + nest + diet + lower_stratum|site),
+                    family=binomial, data=high.gen,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 500000)))
+
+
+mlow.gen <- glmer(cbind(occor, n.visit-occor) ~  
+                    forest_site400*lbody_size + 
+                    forest_site400*nest +
+                    forest_site400*diet + 
+                    forest_site400*lower_stratum +
+                    forest_land*lbody_size + 
+                    forest_land*nest + 
+                    forest_land*diet +
+                    forest_land*lower_stratum + 
+                    (forest_site400 + forest_land|sp) + 
+                    (1|landscape:sp) + (1|site:sp) + 
+                    (lbody_size + nest + diet + lower_stratum|landscape) +
+                    (lbody_size + nest + diet + lower_stratum|site),
+                    family=binomial, data=low.gen,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 500000)))
+
+```

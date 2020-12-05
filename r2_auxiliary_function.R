@@ -8,7 +8,7 @@
 # Following Nakagawa & Schielzeth 2013, Johnson et al. 2014
 
 # Auxiliary function to calculate R2s of each term in models
-r2.calc <- function(model, coefs= "fc400", atrib="diet"){
+r2.calc <- function(model, coefs= c("forest_site400", "forest_land"), atrib="diet"){
   
   coefs = c("(Intercept)", coefs)
   
@@ -57,10 +57,13 @@ r2.calc <- function(model, coefs= "fc400", atrib="diet"){
   r2.cond <- (var.f + var.sp + var.landscape + var.site + var.landscape.sp +
                 var.site.sp)/denominador
   
-  res <- data.frame(componente = c("overall", "fixed.effects", "sp", "landscape.sp",
-                                   "site.sp", "landscape", "site"),
-                    valores = round(c(r2.cond, r2.fix, c(var.sp, var.landscape.sp,
-                                                         var.site.sp, var.landscape, var.site)/denominador), 3))
+  res <- data.frame(overall = round(r2.cond,3),
+                    fixed.effects = round(r2.fix,3),
+                    sp = round(var.sp/denominador, 3),
+                    landscape.sp = round(var.landscape.sp/denominador, 3),
+                    site.sp = round(var.site.sp/denominador, 3),
+                    landscape = round(var.landscape/denominador, 3),
+                    site = round(var.site/denominador, 3))
   return(res) 
 }
 

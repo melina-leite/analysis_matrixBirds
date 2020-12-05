@@ -17,12 +17,12 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
-  echo = F, warning = F, fig.align = "center", message = F,
+  echo = T, warning = F, fig.align = "center", message = F,
   error = F, cache = T, fig.pos="H")
 
 library(knitr)
 library(tidyverse); library(cowplot); library(patchwork)
-library(lme4)
+library(lme4); library(bbmle)
 theme_set(theme_cowplot())
 ```
 
@@ -921,15 +921,91 @@ dev.off()
 
 
 
-# Comparing models
+# Comparing trait models
 
 ## Specialists high quality matrices
 
+```{r}
+AICtab(bodyhigh.spe, diethigh.spe, nesthigh.spe, low_strathigh.spe, 
+       stratumhigh.spe, frugihigh.spe, insehigh.spe, base=T, weights=T) %>%
+  kable()
+```
+
+```{r}
+r2high.spe <- bind_rows(list(
+              body_size = r2.calc(bodyhigh.spe, atrib= "lbody_size"),
+              diet = r2.calc(diethigh.spe, atrib= "diet"),
+              nest = r2.calc(nesthigh.spe, atrib= "nest"),
+              low_strat = r2.calc(low_strathigh.spe, atrib= "lower_stratum"),
+              stratum = r2.calc(stratumhigh.spe, atrib= "stratum"),
+              frugi = r2.calc(frugihigh.spe, atrib= "frugi"),
+              inse_size = r2.calc(insehigh.spe, atrib= "inse")), .id="trait" )
+kable(r2high.spe)
+```
+
+
 ## Specialists low quality matrices
+
+```{r}
+AICtab(bodylow.spe, dietlow.spe, nestlow.spe, low_stratlow.spe, 
+       stratumlow.spe, frugilow.spe, inselow.spe, base=T, weights=T )%>%
+  kable()
+```
+
+```{r}
+r2low.spe <- bind_rows(list(
+              body_size = r2.calc(bodylow.spe, atrib= "lbody_size"),
+              diet = r2.calc(dietlow.spe, atrib= "diet"),
+              nest = r2.calc(nestlow.spe, atrib= "nest"),
+              low_strat = r2.calc(low_stratlow.spe, atrib= "lower_stratum"),
+              stratum = r2.calc(stratumlow.spe, atrib= "stratum"),
+              frugi = r2.calc(frugilow.spe, atrib= "frugi"),
+              inse_size = r2.calc(inselow.spe, atrib= "inse")), .id="trait" )
+kable(r2low.spe)
+```
+
 
 ## Generalists high quality matrices
 
+```{r}
+AICtab(bodyhigh.gen, diethigh.gen, nesthigh.gen, low_strathigh.gen, 
+       stratumhigh.gen, frugihigh.gen, insehigh.gen, base=T, weights=T) %>%
+  kable()
+```
+
+```{r}
+r2high.gen <- bind_rows(list(
+              body_size = r2.calc(bodyhigh.gen, atrib= "lbody_size"),
+              diet = r2.calc(diethigh.gen, atrib= "diet"),
+              nest = r2.calc(nesthigh.gen, atrib= "nest"),
+              low_strat = r2.calc(low_strathigh.gen, atrib= "lower_stratum"),
+              stratum = r2.calc(stratumhigh.gen, atrib= "stratum"),
+              frugi = r2.calc(frugihigh.gen, atrib= "frugi"),
+              inse_size = r2.calc(insehigh.gen, atrib= "inse")), .id="trait" )
+kable(r2high.gen)
+```
+
+
 ## Generalists low quality matrices
+
+```{r}
+AICtab(bodylow.gen, dietlow.gen, nestlow.gen, low_stratlow.gen, 
+       stratumlow.gen, frugilow.gen, inselow.gen, base=T, weights=T) %>% 
+  kable()
+```
+
+```{r}
+r2low.gen <- bind_rows(list(
+              body_size = r2.calc(bodylow.gen, atrib= "lbody_size"),
+              diet = r2.calc(dietlow.gen, atrib= "diet"),
+              nest = r2.calc(nestlow.gen, atrib= "nest"),
+              low_strat = r2.calc(low_stratlow.gen, atrib= "lower_stratum"),
+              stratum = r2.calc(stratumlow.gen, atrib= "stratum"),
+              frugi = r2.calc(frugilow.gen, atrib= "frugi"),
+              inse_size = r2.calc(inselow.gen, atrib= "inse")), .id="trait" )
+kable(r2low.gen)
+```
+
 
 # Saving models results
 
