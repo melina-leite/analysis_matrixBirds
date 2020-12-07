@@ -115,4 +115,6 @@ mlow.gen <- glmer(cbind(occor, n.visit-occor) ~
                     nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 500000)))
 
+save(mhigh.gen, mhigh.spe, mlow.gen, mlow.spe,
+  file="models_outputs/models_combined.Rdata")
 ```
