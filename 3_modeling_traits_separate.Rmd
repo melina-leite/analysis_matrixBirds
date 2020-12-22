@@ -150,7 +150,7 @@ pbody <- bind_rows(list(high.spe = pbodyhigh.spe, high.gen = pbodyhigh.gen,
 ```
 
 ```{r}
-labi <- c(`5`= "5 g", `100`= "100 g", `500`= "500 g", `spe`= "Specialists",
+labibody <- c(`5`= "5 g", `100`= "100 g", `500`= "500 g", `spe`= "Specialists",
           `gen` = "Generalists")
 ```
 
@@ -158,12 +158,11 @@ labi <- c(`5`= "5 g", `100`= "100 g", `500`= "500 g", `spe`= "Specialists",
 figbody <- ggplot(pbody, aes(x=forest_site400, y=pred, col=matrix, 
                   linetype=as.factor(forest_land))) + 
   geom_line(size=1.5) +
-  facet_grid(habitat~as.factor(body_size), labeller=as_labeller(labi))+
+  facet_grid(habitat~as.factor(body_size), labeller=as_labeller(labibody))+
   scale_linetype_manual(name = "Landscape \n cover (%)", 
                  values = c("dotted",  "dashed","solid")) +
   scale_color_manual(name="Matrix quality", 
-                     labels=c("High quality", 
-                                              "Low quality"),
+                     labels=c("High", "Low"),
                      values=c("darkgreen", "sandybrown")) +
   scale_x_continuous(name="Local forest cover (%)", breaks=c(30,60)) +
   scale_y_continuous(name="Occurrence probability", 
@@ -177,6 +176,7 @@ figbody
 ```
 
 ```{r, eval=F}
+#figure for presentation
 jpeg("figures/trait_body_size.jpg", width = 16, height = 10, res=150, units="cm" )
 figbody
 dev.off()
@@ -264,7 +264,7 @@ pnest <- bind_rows(list(high.spe = pnesthigh.spe, high.gen = pnesthigh.gen,
 ```
 
 ```{r}
-labi <- c(`cavities`= "Cavities", `closed`= "Closed", 
+labinest <- c(`cavities`= "Cavities", `closed`= "Closed", 
           `open_semi`= "Open",`spe`= "Specialists",
           `gen` = "Generalists")
 ```
@@ -273,7 +273,7 @@ labi <- c(`cavities`= "Cavities", `closed`= "Closed",
 fignest <- ggplot(pnest, aes(x=forest_site400, y=pred, col=matrix, 
                   linetype=as.factor(forest_land))) + 
   geom_line(size=1.5) +
-  facet_grid(habitat~as.factor(nest), labeller=as_labeller(labi))+
+  facet_grid(habitat~as.factor(nest), labeller=as_labeller(labinest))+
   scale_linetype_manual(name = "Landscape \n cover (%)", 
                  values = c("dotted",  "dashed","solid")) +
   scale_color_manual(name="Matrix quality", 
@@ -296,7 +296,6 @@ jpeg("figures/trait_nest.jpg", width = 16, height = 10, res=150, units="cm" )
 fignest
 dev.off()
 ```
-
 
 
 ## Diet
@@ -381,7 +380,7 @@ pdiet <- bind_rows(list(high.spe = pdiethigh.spe, high.gen = pdiethigh.gen,
 ```
 
 ```{r}
-labi <- c(`insectivorous`= "Insectivorous", `onivorous`= "Onivorous", 
+labidiet <- c(`insectivorous`= "Insectivorous", `onivorous`= "Onivorous", 
           `frugivorous`= "Frugivorous", `nectarivorous` = "Nectarivorous",
           `granivorous` = "Granivorous",`spe`= "Specialists",
           `gen` = "Generalists")
@@ -391,7 +390,7 @@ labi <- c(`insectivorous`= "Insectivorous", `onivorous`= "Onivorous",
 figdiet <- ggplot(pdiet, aes(x=forest_site400, y=pred, col=matrix, 
                   linetype=as.factor(forest_land))) + 
   geom_line(size=1.5) +
-  facet_grid(habitat~as.factor(diet), labeller=as_labeller(labi))+
+  facet_grid(habitat~as.factor(diet), labeller=as_labeller(labidiet))+
   scale_linetype_manual(name = "Landscape \n cover (%)", 
                  values = c("dotted",  "dashed","solid")) +
   scale_color_manual(name="Matrix quality", 
@@ -401,16 +400,16 @@ figdiet <- ggplot(pdiet, aes(x=forest_site400, y=pred, col=matrix,
   scale_x_continuous(name="Local forest cover (%)", breaks=c(30,60)) +
   scale_y_continuous(name="Occurrence probability", 
                      breaks = c(0,0.1,0.2), limits = c(0,0.2)) +
-  theme(strip.text.x = element_text(size=12, margin = margin(r=2,l=2,t=2,b=2)),
-        text = element_text(size=14),
-        axis.text = element_text(size=12),
+  theme(strip.text.x = element_text(size=10, margin = margin(r=2,l=2,t=2,b=2)),
+        text = element_text(size=10),
+        axis.text = element_text(size=10),
         legend.position = "right") +
   ggtitle("diet type")
 figdiet
 ```
 
 ```{r, eval=F}
-jpeg("figures/trait_diet.jpg", width = 16, height = 10, res=150, units="cm" )
+jpeg("figures/trait_diet.jpg", width = 18, height = 12, res=150, units="cm" )
 figdiet
 dev.off()
 ```
@@ -1004,6 +1003,70 @@ r2low.gen <- bind_rows(list(
               frugi = r2.calc(frugilow.gen, atrib= "frugi"),
               inse_size = r2.calc(inselow.gen, atrib= "inse")), .id="trait" )
 kable(r2low.gen)
+```
+
+# Figure diet + nest type + body size
+
+```{r}
+figdiet <- pdiet %>% filter(forest_land == 30) %>%
+  ggplot(aes(x=forest_site400, y=pred, col=matrix)) + 
+  geom_line(size=1.5) +
+  facet_grid(habitat~as.factor(diet), labeller=as_labeller(labidiet))+
+  scale_color_manual(name="  Matrix \n  quality ", 
+                     labels=c("High","Low"),
+                     values=c("darkgreen", "sandybrown")) +
+  scale_x_continuous(name="Local forest cover (%)", breaks=c(30,60)) +
+  scale_y_continuous(name="Occurrence probability", 
+                     breaks = c(0,0.1,0.2), limits = c(0,0.2)) +
+  theme(strip.text.x = element_text(size=12, margin = margin(r=2,l=2,t=2,b=2)),
+        text = element_text(size=14),
+        axis.text = element_text(size=12),
+        legend.position = "right",
+        legend.box.background = element_rect(fill="snow2", color="snow2")) +
+  ggtitle("Main diet")
+
+figdiet2 <- figdiet + theme(legend.position = "none")
+legenda <- get_legend(figdiet)
+
+figbody <- pbody %>% filter(forest_land == 30) %>%
+ggplot(aes(x=forest_site400, y=pred, col=matrix)) + 
+  geom_line(size=1.5) +
+  facet_grid(habitat~as.factor(body_size), labeller=as_labeller(labibody))+
+  scale_color_manual(name="Matrix quality", 
+                     labels=c("High", "Low"),
+                     values=c("darkgreen", "sandybrown")) +
+  scale_x_continuous(name="Local forest cover (%)", breaks=c(30,60)) +
+  scale_y_continuous(name="Occurrence probability", 
+                     breaks = c(0,0.1,0.2), limits = c(0,0.2)) +
+  theme(strip.text.x = element_text(size=12, margin = margin(r=2,l=2,t=2,b=2)),
+         strip.text.y = element_blank(),
+        text = element_text(size=14),
+        axis.text = element_text(size=12),
+        legend.position = "none") +
+  ggtitle("Body mass")
+
+fignest <- pnest %>% filter(forest_land == 30) %>%
+ggplot(aes(x=forest_site400, y=pred, col=matrix)) + 
+  geom_line(size=1.5) +
+  facet_grid(habitat~as.factor(nest), labeller=as_labeller(labinest))+
+  scale_color_manual(name="Matrix quality", 
+                     labels=c("High", "Low"),
+                     values=c("darkgreen", "sandybrown")) +
+  scale_x_continuous(name="Local forest cover (%)", breaks=c(30,60)) +
+  scale_y_continuous(name="", 
+                     breaks = c(0,0.1,0.2), limits = c(0,0.2)) +
+  theme(strip.text.x = element_text(size=12, margin = margin(r=2,l=2,t=2,b=2)),
+        text = element_text(size=14),
+        axis.text.y = element_blank(),
+        axis.text = element_text(size=12),
+        legend.position = "none") +
+  ggtitle("Nest type")
+```
+
+```{r, eval=F}
+jpeg("figures/traits_diet_nest_body.jpg", width = 20, height = 20, res=150, units="cm" )
+(figdiet2+legenda +plot_layout(widths = c(1,0.15)))/(figbody+fignest) 
+dev.off()
 ```
 
 

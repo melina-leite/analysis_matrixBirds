@@ -26,7 +26,6 @@ library(lme4); library(bbmle)
 theme_set(theme_cowplot())
 ```
 
-
 Loading auxiliary function for R2 calculations
 ```{r}
 source("r2_auxiliary_function.R")
@@ -35,13 +34,11 @@ source("r2_auxiliary_function.R")
 Loading data
 ```{r}
 load("datasets.Rdata")
-# saved models results
-load("models_outputs/models_combined.Rdata")
+load("models_outputs/models_combined.Rdata") # saved models results
 ```
 
 
 # Combined traits models
-
 
 ```{r, eval=F}
 mhigh.spe <- glmer(cbind(occor, n.visit-occor) ~  
@@ -117,4 +114,60 @@ mlow.gen <- glmer(cbind(occor, n.visit-occor) ~
 
 save(mhigh.gen, mhigh.spe, mlow.gen, mlow.spe,
   file="models_outputs/models_combined.Rdata")
+```
+
+# Local and landscape forest cover
+
+Comparing effect sizes and 95% IC for forest cover a local and landscape scale for each assemblage.
+
+```{r}
+library("broom.mixed")
+fhigh.spe <- tidy(mhigh.spe, effects = "fixed") %>% select(-effect)
+fhigh.gen <- tidy(mhigh.gen, effects = "fixed") %>% select(-effect)
+flow.spe  <- tidy(mlow.spe, effects = "fixed") %>% select(-effect)
+flow.gen  <- tidy(mlow.gen, effects = "fixed") %>% select(-effect)
+```
+
+```{r}
+fc <- bind_rows(list(High.Specialists=fhigh.spe, 
+                     Low.Specialists=flow.spe, 
+                     High.Generalists=fhigh.gen,
+                     Low.Generalists =flow.gen), .id= "model") %>%
+  separate(model, c("matrix", "habitat"), remove = F) %>%
+  filter(term %in% c("forest_land", "forest_site400")) %>%
+  arrange(habitat, matrix,term) %>%
+  mutate(iclow = estimate - 1.96*std.error,
+         icup = estimate + 1.96*std.error, 
+         y= c(2,2, 1,1, 2,2, 1,1),
+         habitat = fct_relevel(habitat, "Specialists", "Generalists"),
+         term = fct_recode(term, Landscape = "forest_land", Local = "forest_site400")) %>%
+  mutate(term = fct_relevel(term, "Local", "Landscape"),
+         matrix = fct_relevel(matrix, "High", "Low"))
+
+fig.forest <- fc %>%
+  ggplot(aes(x=estimate, y=y, col=matrix)) + geom_point() + 
+  geom_errorbarh(aes(xmin=iclow, xmax=icup), height=0) +
+  facet_grid(cols= vars(term), rows=vars(habitat), switch = "y") +
+  geom_vline(xintercept = 0, linetype="dashed", col="grey") +
+  scale_y_continuous(name="", limits=c(0,3)) +
+  scale_color_manual(name="  Matrix \n  quality ",
+                     values=c("darkgreen", "sandybrown")) +
+ theme(text = element_text(size=12),
+        axis.text = element_text(size=12),
+        strip.text.x = element_text(size=12, margin=margin(t=2,b=3)),
+        strip.text.y = element_text(size=12, margin=margin(r=2,l=3)),
+       legend.position = c(0.89, 0.2),
+       plot.title = element_text(hjust = 0.5),
+       legend.box.background = element_rect(fill="snow2", color="snow2"),
+       axis.text.y = element_blank(),
+       axis.line.y = element_blank(),
+       axis.ticks.y = element_blank()) +
+  xlab("Effect size") +
+  ggtitle("Forest cover")
+```
+
+```{r}
+jpeg("figures/forest_cover_effectsize.jpg", width=16, height = 10, units="cm", res=150)
+fig.forest
+dev.off()
 ```
