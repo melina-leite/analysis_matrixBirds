@@ -1,0 +1,356 @@
+---
+title: "Final models traits - forest cover at local and landscape scale"
+author: "Melina Leite"
+date: "`r format(Sys.time(), '%d de %B de %Y')`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: false
+    fig_heigth: 20
+  pdf_document:
+    highlight: tango
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = T, warning = F, fig.align = "center", message = F,
+  error = F, cache = T, fig.pos="H")
+
+library(knitr)
+library(tidyverse); library(cowplot); library(patchwork)
+library(lme4); library(bbmle)
+theme_set(theme_cowplot())
+```
+
+Loading auxiliary function for R2 calculations
+```{r}
+source("r2_auxiliary_function.R")
+```
+
+Loading data
+```{r}
+load("datasets.Rdata")
+load("models_outputs/models_combined.Rdata") # saved models results this script
+load("models_outputs/models_traits.Rdata") # saved models results separate
+```
+
+
+# Combined traits models
+
+```{r, eval=F}
+mhigh.spe <- glmer(cbind(occor, n.visit-occor) ~  
+                    forest_site400*lbody_size + 
+                    forest_site400*nest +
+                    forest_site400*diet + 
+                    forest_site400*lower_stratum +
+                    forest_land*lbody_size + 
+                    forest_land*nest + 
+                    forest_land*diet +
+                    forest_land*lower_stratum + 
+                    (forest_site400 + forest_land|sp) + 
+                    (1|landscape:sp) + (1|site:sp) + 
+                    (lbody_size + nest + diet + lower_stratum|landscape) +
+                    (lbody_size + nest + diet + lower_stratum|site),
+                    family=binomial, data=high.spe,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 500000)))
+
+
+mlow.spe <- glmer(cbind(occor, n.visit-occor) ~  
+                    forest_site400*lbody_size + 
+                    forest_site400*nest +
+                    forest_site400*diet + 
+                    forest_site400*lower_stratum +
+                    forest_land*lbody_size + 
+                    forest_land*nest + 
+                    forest_land*diet +
+                    forest_land*lower_stratum + 
+                    (forest_site400 + forest_land|sp) + 
+                    (1|landscape:sp) + (1|site:sp) + 
+                    (lbody_size + nest + diet + lower_stratum|landscape) +
+                    (lbody_size + nest + diet + lower_stratum|site),
+                    family=binomial, data=low.spe,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 500000)))
+
+
+mhigh.gen <- glmer(cbind(occor, n.visit-occor) ~  
+                    forest_site400*lbody_size + 
+                    forest_site400*nest +
+                    forest_site400*diet + 
+                    forest_site400*lower_stratum +
+                    forest_land*lbody_size + 
+                    forest_land*nest + 
+                    forest_land*diet +
+                    forest_land*lower_stratum + 
+                    (forest_site400 + forest_land|sp) + 
+                    (1|landscape:sp) + (1|site:sp) + 
+                    (lbody_size + nest + diet + lower_stratum|landscape) +
+                    (lbody_size + nest + diet + lower_stratum|site),
+                    family=binomial, data=high.gen,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 500000)))
+
+
+mlow.gen <- glmer(cbind(occor, n.visit-occor) ~  
+                    forest_site400*lbody_size + 
+                    forest_site400*nest +
+                    forest_site400*diet + 
+                    forest_site400*lower_stratum +
+                    forest_land*lbody_size + 
+                    forest_land*nest + 
+                    forest_land*diet +
+                    forest_land*lower_stratum + 
+                    (forest_site400 + forest_land|sp) + 
+                    (1|landscape:sp) + (1|site:sp) + 
+                    (lbody_size + nest + diet + lower_stratum|landscape) +
+                    (lbody_size + nest + diet + lower_stratum|site),
+                    family=binomial, data=low.gen,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 500000)))
+```
+
+# Local and landscape forest cover effects
+
+Comparing effect sizes and 95% IC for forest cover a local and landscape scale for each assemblage.
+
+```{r, echo=F}
+library("broom.mixed")
+fhigh.spe <- tidy(mhigh.spe, effects = "fixed") %>% select(-effect)
+fhigh.gen <- tidy(mhigh.gen, effects = "fixed") %>% select(-effect)
+flow.spe  <- tidy(mlow.spe, effects = "fixed") %>% select(-effect)
+flow.gen  <- tidy(mlow.gen, effects = "fixed") %>% select(-effect)
+```
+
+```{r, echo=F}
+fc <- bind_rows(list(High.Specialists=fhigh.spe, 
+                     Low.Specialists=flow.spe, 
+                     High.Generalists=fhigh.gen,
+                     Low.Generalists =flow.gen), .id= "model") %>%
+  separate(model, c("matrix", "habitat"), remove = F) %>%
+  filter(term %in% c("forest_land", "forest_site400")) %>%
+  arrange(habitat, matrix,term) %>%
+  mutate(iclow = estimate - 1.96*std.error,
+         icup = estimate + 1.96*std.error, 
+         y= c(2,2, 1,1, 2,2, 1,1),
+         habitat = fct_relevel(habitat, "Specialists", "Generalists"),
+         term = fct_recode(term, Landscape = "forest_land", Local = "forest_site400")) %>%
+  mutate(term = fct_relevel(term, "Local", "Landscape"),
+         matrix = fct_relevel(matrix, "High", "Low"))
+
+fig.forest <- fc %>%
+  ggplot(aes(x=estimate, y=y, col=matrix)) + geom_point() + 
+  geom_errorbarh(aes(xmin=iclow, xmax=icup), height=0) +
+  facet_grid(cols= vars(term), rows=vars(habitat), switch = "y") +
+  geom_vline(xintercept = 0, linetype="dashed", col="grey") +
+  scale_y_continuous(name="", limits=c(0,3)) +
+  scale_color_manual(name="  Matrix \n  quality ",
+                     values=c("darkgreen", "sandybrown")) +
+ theme(text = element_text(size=12),
+        axis.text = element_text(size=12),
+        strip.text.x = element_text(size=12, margin=margin(t=2,b=3)),
+        strip.text.y = element_text(size=12, margin=margin(r=2,l=3)),
+       legend.position = c(0.89, 0.2),
+       plot.title = element_text(hjust = 0.5),
+       legend.box.background = element_rect(fill="snow2", color="snow2"),
+       axis.text.y = element_blank(),
+       axis.line.y = element_blank(),
+       axis.ticks.y = element_blank()) +
+  xlab("Effect size") +
+  ggtitle("Forest cover")
+fig.forest
+```
+
+```{r, echo=F}
+jpeg("figures/forest_cover_effectsize.jpg", width=16, height = 10, units="cm", res=150)
+fig.forest
+dev.off()
+```
+
+
+# Trait importance metric
+
+The importance of the trait in explaining habitat loss filtering was calculated using the proportional decrease in the variance of the species random slope of forest cover ($d_{spp[i]$) when you include the trait-environment interaction term ($\beta_{12}$) in the model (Jamil et al. 2013):
+
+$$C_\beta = 1 = \frac{d_{spp[i]}(res)}{d_{spp[i]}(total)}$$
+
+
+
+
+where $d_{spp[i]}(res)$ is the variance of the random slope from model with trait main effects ($\beta_{2}$) and the trait-environment interaction ($\beta_{12}$), and $d_{spp[i]}(total)$ is the same variance term for the model without trait-environment interaction but with the main effects of traits.This proportion explains how much of the effect of habitat loss on each species can be explained by their trait values.
+
+**OBS:** Models without trait*enviroment interaction for the separate traits were previoulsy analyzed in the Rmd scrit `3_modeling_traits_separate.Rmd`.
+
+Models without trait*enviroment interactions for the combined traits:
+
+```{r, eval=F}
+mhigh.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
+                    forest_site400 + forest_land +
+                    lbody_size + 
+                    nest +
+                    diet + 
+                    lower_stratum +
+                    (forest_site400 + forest_land|sp) + 
+                    (1|landscape:sp) + (1|site:sp) + 
+                    (lbody_size + nest + diet + lower_stratum|landscape) +
+                    (lbody_size + nest + diet + lower_stratum|site),
+                    family=binomial, data=high.spe,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 500000)))
+
+
+mlow.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
+                    forest_site400 + forest_land +
+                    lbody_size + 
+                    nest +
+                    diet + 
+                    lower_stratum +
+                    (forest_site400 + forest_land|sp) + 
+                    (1|landscape:sp) + (1|site:sp) + 
+                    (lbody_size + nest + diet + lower_stratum|landscape) +
+                    (lbody_size + nest + diet + lower_stratum|site),
+                    family=binomial, data=low.spe,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 500000)))
+
+
+mhigh.gen2 <- glmer(cbind(occor, n.visit-occor) ~  
+                    forest_site400 + forest_land +
+                    lbody_size + 
+                    nest +
+                    diet + 
+                    lower_stratum +
+                    (forest_site400 + forest_land|sp) + 
+                    (1|landscape:sp) + (1|site:sp) + 
+                    (lbody_size + nest + diet + lower_stratum|landscape) +
+                    (lbody_size + nest + diet + lower_stratum|site),
+                    family=binomial, data=high.gen,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 500000)))
+
+
+mlow.gen2 <- glmer(cbind(occor, n.visit-occor) ~  
+                    forest_site400 + forest_land +
+                    lbody_size + 
+                    nest +
+                    diet + 
+                    lower_stratum +
+                    (forest_site400 + forest_land|sp) + 
+                    (1|landscape:sp) + (1|site:sp) + 
+                    (lbody_size + nest + diet + lower_stratum|landscape) +
+                    (lbody_size + nest + diet + lower_stratum|site),
+                    family=binomial, data=low.gen,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 500000)))
+```
+
+Function to calculate trait importance:
+```{r}
+cbeta <- function(m.inter, m.no.inter){
+    cbeta <- 1-((VarCorr(m.inter)$sp[2,2] + VarCorr(m.inter)$sp[3,3])
+               /(VarCorr(m.no.inter)$sp[2,2] + VarCorr(m.no.inter)$sp[3,3]))
+  return(round(100*cbeta))
+}
+```
+
+```{r}
+comb <- c(cbeta(mhigh.spe, mhigh.spe2),
+          cbeta(mlow.spe,  mlow.spe2),
+          cbeta(mhigh.gen, mhigh.gen2),
+          cbeta(mlow.gen,  mlow.gen2))
+
+bd   <- c(cbeta(bodyhigh.spe, bodyhigh.spe2),
+          cbeta(bodylow.spe,  bodylow.spe2),
+          cbeta(bodyhigh.gen, bodyhigh.gen2),
+          cbeta(bodylow.gen,  bodylow.gen2))
+
+ni   <- c(cbeta(nesthigh.spe, nesthigh.spe2),
+          cbeta(nestlow.spe,  nestlow.spe2),
+          cbeta(nesthigh.gen, nesthigh.gen2),
+          cbeta(nestlow.gen,  nestlow.gen2))
+
+di   <- c(cbeta(diethigh.spe, diethigh.spe2),
+          cbeta(dietlow.spe,  dietlow.spe2),
+          cbeta(diethigh.gen, diethigh.gen2),
+          cbeta(dietlow.gen,  dietlow.gen2))
+
+ls   <- c(cbeta(low_strathigh.spe, low_strathigh.spe2),
+          cbeta(low_stratlow.spe,  low_stratlow.spe2),
+          cbeta(low_strathigh.gen, low_strathigh.gen2),
+          cbeta(low_stratlow.gen,  low_stratlow.gen2))
+
+st   <- c(cbeta(stratumhigh.spe, stratumhigh.spe2),
+          cbeta(stratumlow.spe,  stratumlow.spe2),
+          cbeta(stratumhigh.gen, stratumhigh.gen2),
+          cbeta(stratumlow.gen,  stratumlow.gen2))
+
+fr   <- c(cbeta(frugihigh.spe, frugihigh.spe2),
+          cbeta(frugilow.spe,  frugilow.spe2),
+          cbeta(frugihigh.gen, frugihigh.gen2),
+          cbeta(frugilow.gen,  frugilow.gen2))
+
+is   <- c(cbeta(insehigh.spe, insehigh.spe2),
+          cbeta(inselow.spe,  inselow.spe2),
+          cbeta(insehigh.gen, insehigh.gen2),
+          cbeta(inselow.gen,  inselow.gen2))
+```
+
+```{r}
+tra <- data.frame(matrix = c("High quality", "Low quality", 
+                             "High quality", "Low quality"),
+                  habitat = c("Specialists", "Specialists",
+                              "Generalists","Generalists"),
+                  comb, ni, di, st, ls, bd, is, fr)
+colnames(tra)[3:10] <- c("Combined","Nest type", "Main diet", 
+                             "Foraging stratum", "% lower strata",
+                             "Body mass", "% insectivory", "% frugivory")
+tra
+# colocndo valor -1 por 0
+tra[3,4] <- 0
+```
+
+```{r}
+figtrait.env <- tra %>% gather("trait", "value", 3:10) %>%
+  mutate(trait = fct_relevel(trait, "Combined","Nest type", "Main diet", 
+                             "Foraging stratum", "% lower strata",
+                             "Body mass", "% insectivory", "% frugivory"),
+         habitat = fct_relevel(habitat, "Specialists", "Generalists")) %>% 
+  arrange(trait) %>%
+  mutate(xis=rep(1:8, each=4)) %>%
+  ggplot(aes(x=xis, y=value, col=matrix)) + geom_line(size=1) + geom_point(size=3) +
+  facet_grid(~habitat) +
+  scale_x_continuous(breaks=1:8, labels= c("Combined","Nest type", "Main diet", 
+                                           "Foraging stratum", "% lower strata",
+                                           "Body mass", "% insectivory", "% frugivory")) +
+  xlab("") +
+  scale_color_manual(name="Matrix \n quality",
+                     labels = c("High", "Low"),
+                     values = c("darkgreen", "sandybrown")) +
+  ylab("Trait importance (%)")+
+  theme(axis.text.x = element_text(angle=45, hjust=1),
+        text = element_text(size=12),
+        axis.text = element_text(size=12),
+        legend.box.background = element_rect(fill="snow2", color="snow2")
+        strip.text = element_text(size=12, margin=margin(t=2,b=3)),
+        legend.justification = c(1, 0), legend.position = c(1, 0.75)) 
+figtrait.env
+```
+
+```{r, eval=F}
+jpeg("figures/fig_traitXenv.jpg", width=20, height = 12, units="cm", res=150)
+figtrait.env
+dev.off()
+```
+
+# Saving models results
+
+```{r, eval=F}
+save(mhigh.gen, mhigh.spe, mlow.gen, mlow.spe,
+     mhigh.gen2, mhigh.spe2, mlow.gen2, mlow.spe2,
+  file="models_outputs/models_combined.Rdata")
+```
+

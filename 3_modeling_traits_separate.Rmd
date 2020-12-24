@@ -1069,6 +1069,220 @@ jpeg("figures/traits_diet_nest_body.jpg", width = 20, height = 20, res=150, unit
 dev.off()
 ```
 
+# Trait importance metric
+
+Models withouth trait-enviroment interactions
+
+
+```{r}
+bodyhigh.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + lbody_size +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (lbody_size|landscape) + (lbody_size|site),
+                       family=binomial, data=high.spe,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+bodyhigh.gen2 <- glmer(cbind(occor, n.visit-occor) ~  
+                         forest_site400 + forest_land + lbody_size +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (lbody_size|landscape) + (lbody_size|site),
+                       family=binomial, data=high.gen,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+bodylow.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
+                         forest_site400 + forest_land + lbody_size +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (lbody_size|landscape) + (lbody_size|site),
+                       family=binomial, data=low.spe,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+bodylow.gen2 <- glmer(cbind(occor, n.visit-occor) ~  
+                         forest_site400 + forest_land + lbody_size +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (lbody_size|landscape) + (lbody_size|site),
+                       family=binomial, data=low.gen,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+```
+
+
+```{r}
+nesthigh.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + nest +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (nest|landscape) + (nest|site),
+                       family=binomial, data=high.spe,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+nesthigh.gen2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + nest +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (nest|landscape) + (nest|site),
+                       family=binomial, data=high.gen,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+nestlow.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
+                       forest_site400 + forest_land + nest +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (nest|landscape) + (nest|site),
+                       family=binomial, data=low.spe,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+nestlow.gen2 <- glmer(cbind(occor, n.visit-occor) ~  
+                       forest_site400 + forest_land + nest +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (nest|landscape) + (nest|site),
+                       family=binomial, data=low.gen,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+
+diethigh.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + diet +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (diet|landscape) + (diet|site),
+                       family=binomial, data=high.spe,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+diethigh.gen2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + diet +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (diet|landscape) + (diet|site),
+                       family=binomial, data=high.gen,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+dietlow.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + diet +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (diet|landscape) + (diet|site),
+                       family=binomial, data=low.spe,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+dietlow.gen2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + diet +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (diet|landscape) + (diet|site),
+                       family=binomial, data=low.gen,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+
+low_strathigh.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + lower_stratum +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (lower_stratum|landscape) + (lower_stratum|site),
+                       family=binomial, data=high.spe,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+low_strathigh.gen2 <- glmer(cbind(occor, n.visit-occor) ~  
+                       forest_site400 + forest_land + lower_stratum +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (lower_stratum|landscape) + (lower_stratum|site),
+                       family=binomial, data=high.gen,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+low_stratlow.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + lower_stratum +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (lower_stratum|landscape) + (lower_stratum|site),
+                       family=binomial, data=low.spe,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+low_stratlow.gen2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + lower_stratum +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (lower_stratum|landscape) + (lower_stratum|site),
+                       family=binomial, data=low.gen,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+
+stratumhigh.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + stratum +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (stratum|landscape) + (stratum|site),
+                       family=binomial, data=high.spe,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+stratumhigh.gen2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + stratum +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (stratum|landscape) + (stratum|site),
+                       family=binomial, data=high.gen,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+stratumlow.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + stratum +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (stratum|landscape) + (stratum|site),
+                       family=binomial, data=low.spe,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+stratumlow.gen2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + stratum +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (stratum|landscape) + (stratum|site),
+                       family=binomial, data=low.gen,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+
+frugihigh.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + frugivory +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (frugivory|landscape) + (frugivory|site),
+                       family=binomial, data=high.spe,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+frugihigh.gen2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + frugivory +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (frugivory|landscape) + (frugivory|site),
+                       family=binomial, data=high.gen,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+frugilow.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + frugivory +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (frugivory|landscape) + (frugivory|site),
+                       family=binomial, data=low.spe,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+frugilow.gen2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + frugivory +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (frugivory|landscape) + (frugivory|site),
+                       family=binomial, data=low.gen,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+
+insehigh.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + insectivory +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (insectivory|landscape) + (insectivory|site),
+                       family=binomial, data=high.spe,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+insehigh.gen2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + insectivory +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (insectivory|landscape) + (insectivory|site),
+                       family=binomial, data=high.gen,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+inselow.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + insectivory +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (insectivory|landscape) + (insectivory|site),
+                       family=binomial, data=low.spe,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+inselow.gen2 <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400 + forest_land + insectivory +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                         (insectivory|landscape) + (insectivory|site),
+                       family=binomial, data=low.gen,
+                       nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+```
+
+
 
 # Saving models results
 
@@ -1080,6 +1294,14 @@ save(bodyhigh.spe, bodyhigh.gen, bodylow.spe, bodylow.gen,
      stratumhigh.spe, stratumhigh.gen, stratumlow.spe, stratumlow.gen,
      frugihigh.spe, frugihigh.gen, frugilow.spe,frugilow.gen,
      insehigh.spe, insehigh.gen, inselow.spe, inselow.gen,
+     # no interaction trait*env
+     bodyhigh.spe2, bodyhigh.gen2, bodylow.spe2, bodylow.gen2,
+     diethigh.spe2, diethigh.gen2, dietlow.spe2, dietlow.gen2,
+     nesthigh.spe2, nesthigh.gen2, nestlow.spe2, nestlow.gen2,
+     low_strathigh.spe2, low_strathigh.gen2, low_stratlow.spe2, low_stratlow.gen2,
+     stratumhigh.spe2, stratumhigh.gen2, stratumlow.spe2, stratumlow.gen2,
+     frugihigh.spe2, frugihigh.gen2, frugilow.spe2,frugilow.gen2,
+     insehigh.spe2, insehigh.gen2, inselow.spe2, inselow.gen2,
      file= "models_outputs/models_traits.Rdata")
 ```
 
