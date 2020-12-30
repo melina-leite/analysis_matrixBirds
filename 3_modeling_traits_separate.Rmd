@@ -1065,7 +1065,7 @@ ggplot(aes(x=forest_site400, y=pred, col=matrix)) +
 
 ```{r, eval=F}
 jpeg("figures/traits_diet_nest_body.jpg", width = 20, height = 20, res=150, units="cm" )
-(figdiet2+legenda +plot_layout(widths = c(1,0.15)))/(figbody+fignest) 
+(figdiet2+legenda +plot_layout(widths = c(1,0.07)))/(figbody+fignest) 
 dev.off()
 ```
 
