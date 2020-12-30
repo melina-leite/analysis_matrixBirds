@@ -21,8 +21,8 @@ knitr::opts_chunk$set(
   error = F, cache = T, fig.pos="H")
 
 library(knitr)
-library(tidyverse); library(cowplot); library(patchwork)
-library(lme4); library(bbmle)
+library(tidyverse); library(cowplot); library(patchwork); library(ggrepel)
+library(lme4); library(bbmle); library(broom.mixed)
 theme_set(theme_cowplot())
 ```
 
@@ -36,6 +36,7 @@ Loading data
 load("datasets.Rdata")
 load("models_outputs/models_combined.Rdata") # saved models results this script
 load("models_outputs/models_traits.Rdata") # saved models results separate
+load("models_outputs/models_traits_nointeraction.Rdata") # saved models results separate
 ```
 
 
@@ -119,7 +120,6 @@ mlow.gen <- glmer(cbind(occor, n.visit-occor) ~
 Comparing effect sizes and 95% IC for forest cover a local and landscape scale for each assemblage.
 
 ```{r, echo=F}
-library("broom.mixed")
 fhigh.spe <- tidy(mhigh.spe, effects = "fixed") %>% select(-effect)
 fhigh.gen <- tidy(mhigh.gen, effects = "fixed") %>% select(-effect)
 flow.spe  <- tidy(mlow.spe, effects = "fixed") %>% select(-effect)
@@ -304,28 +304,27 @@ tra <- data.frame(matrix = c("High quality", "Low quality",
                              "High quality", "Low quality"),
                   habitat = c("Specialists", "Specialists",
                               "Generalists","Generalists"),
-                  comb, ni, di, st, ls, bd, is, fr)
+                  comb, ni, di, st, is, fr, ls, bd)
 colnames(tra)[3:10] <- c("Combined","Nest type", "Main diet", 
-                             "Foraging stratum", "% lower strata",
-                             "Body mass", "% insectivory", "% frugivory")
+        "Foraging stratum", "% insectivory", "% frugivory", "% lower strata",
+                             "Body mass")
 tra
-# colocndo valor -1 por 0
-tra[3,4] <- 0
 ```
 
 ```{r}
 figtrait.env <- tra %>% gather("trait", "value", 3:10) %>%
   mutate(trait = fct_relevel(trait, "Combined","Nest type", "Main diet", 
-                             "Foraging stratum", "% lower strata",
-                             "Body mass", "% insectivory", "% frugivory"),
+                             "Foraging stratum", "% insectivory", "% frugivory", 
+                             "% lower strata",
+                             "Body mass"),
          habitat = fct_relevel(habitat, "Specialists", "Generalists")) %>% 
   arrange(trait) %>%
   mutate(xis=rep(1:8, each=4)) %>%
   ggplot(aes(x=xis, y=value, col=matrix)) + geom_line(size=1) + geom_point(size=3) +
   facet_grid(~habitat) +
   scale_x_continuous(breaks=1:8, labels= c("Combined","Nest type", "Main diet", 
-                                           "Foraging stratum", "% lower strata",
-                                           "Body mass", "% insectivory", "% frugivory")) +
+                                           "Foraging stratum", "% insectivory", "% frugivory", "% lower strata",
+                                           "Body mass")) +
   xlab("") +
   scale_color_manual(name="Matrix \n quality",
                      labels = c("High", "Low"),
@@ -334,9 +333,9 @@ figtrait.env <- tra %>% gather("trait", "value", 3:10) %>%
   theme(axis.text.x = element_text(angle=45, hjust=1),
         text = element_text(size=12),
         axis.text = element_text(size=12),
-        legend.box.background = element_rect(fill="snow2", color="snow2")
+        legend.box.background = element_rect(fill="snow2", color="snow2"),
         strip.text = element_text(size=12, margin=margin(t=2,b=3)),
-        legend.justification = c(1, 0), legend.position = c(1, 0.75)) 
+        legend.justification = c(1, 0), legend.position = c(1, 0.65)) 
 figtrait.env
 ```
 
@@ -345,6 +344,59 @@ jpeg("figures/fig_traitXenv.jpg", width=20, height = 12, units="cm", res=150)
 figtrait.env
 dev.off()
 ```
+
+# R^2^ models
+
+```{r}
+traits = c("lbody_size", "nest", "diet", "lower_stratum")
+vals <- bind_rows(list(High_Specialists = r2.calc(mhigh.spe, atrib=traits)*100,
+      Low_Specialists=r2.calc(mlow.spe, atrib=traits)*100,
+      High_Generalists=r2.calc(mhigh.gen, atrib=traits)*100,
+     Low_Generalists=r2.calc(mlow.gen, atrib=traits)*100), .id="assemblage")
+
+colnames(vals) <- c("assemblage", "condicional", "trait*env", "env|sp", "lands:sp", "site:sp", "trait|lands", "trait|site")
+
+vals2 <-  vals %>%
+  separate(assemblage, c("matrix", "habitat")) %>%
+  select(-condicional) %>%
+  pivot_longer(3:8, names_to = "term", values_to = "R2") %>%
+  mutate(term = fct_relevel(term,"trait|site", "trait|lands", "site:sp", 
+                                  "lands:sp", "trait*env","env|sp"),
+         habitat = fct_relevel(habitat, "Specialists", "Generalists"),
+         matrix = fct_relevel(matrix, "Low", "High")) %>%
+  arrange(habitat,matrix,desc(term)) %>%
+  group_by(habitat, matrix) %>%
+  mutate(yis = cumsum(R2)-R2/2, 
+         label = as.character(round(R2))) %>% ungroup() %>%
+  mutate(xis = rep(rep(c(1.31,2.31), each=6), 2))
+
+fig.part <- ggplot(vals2, aes(x=matrix, y=R2, fill=term)) + geom_col(width=0.7) +
+  scale_fill_manual(name="Model terms" ,
+                    values = c("lightgrey","darkgrey","aquamarine1",
+                               "aquamarine3", "slateblue1", "slateblue4")) +
+  facet_wrap(~habitat)+
+  scale_y_continuous(name= expression(~ R^2), breaks=seq(0,70,10),
+                     limits=c(0,75)) +
+  scale_x_discrete(name="Matrix quality") +
+  theme(text = element_text(size=12),
+        axis.text = element_text(size=12),
+        strip.text = element_text(size=12, margin=margin(t=2,b=3))) +
+geom_text_repel(data=vals2, aes(label=label, y=yis, x=xis), 
+                segment.size = 0.15, size=3,
+                segment.alpha = 0.7,
+                direction="y",
+                show.legend=F,   nudge_x = 0.15, hjust=0)
+
+fig.part
+```
+
+
+```{r, eval=F}
+jpeg("figures/fig_R2.jpg", width=20, height = 12, units="cm", res=150)
+fig.part
+dev.off()
+```
+
 
 # Saving models results
 

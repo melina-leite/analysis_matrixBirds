@@ -14,6 +14,8 @@ r2.calc <- function(model, coefs= c("forest_site400", "forest_land"), atrib="die
   
   # variance fixed effects
   var.f <- var(as.vector(fixef(model) %*% t(model@pp$X)))
+  
+  # variance sp random effect (intercept + slope)
   X <- model.matrix(model)
   n <- nrow(X)
   Z <- X[,coefs]

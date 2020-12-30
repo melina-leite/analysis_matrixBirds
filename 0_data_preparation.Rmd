@@ -37,6 +37,7 @@ knitr::opts_chunk$set(
   error = F, cache = F, fig.pos="H")
 library(knitr)
 library(tidyverse)
+library(tidyverse); library(janitor)
 ```
 
 Processing the datasets to create a wide formating data for analysis, for each assemblage.
@@ -169,23 +170,192 @@ low.gen <- dataset %>% filter(matrix=="low_quality",
                    ) %>% as.data.frame()
 ```
 
-selecting only the species that occur in the landscapes
+Selecting only the species that occur in the landscapes
 ```{r}
 sp.high.spe <- high.spe %>% group_by(sp) %>% summarise(n=sum(occor)) %>% 
   filter(n>0) %>% select(sp)
-high.spe <- high.spe %>%filter(sp %in% sp.high.spe$sp)
+high.spe <- high.spe %>% filter(sp %in% sp.high.spe$sp)
 
 sp.high.gen <- high.gen %>% group_by(sp) %>% summarise(n=sum(occor)) %>% 
   filter(n>0) %>% select(sp)
-high.gen <- high.gen %>%filter(sp %in% sp.high.gen$sp)
+high.gen <- high.gen %>% filter(sp %in% sp.high.gen$sp)
 
 sp.low.spe <- low.spe %>% group_by(sp) %>% summarise(n=sum(occor)) %>% 
   filter(n>0) %>% select(sp)
-low.spe <- low.spe %>%filter(sp %in% sp.low.spe$sp)
+low.spe <- low.spe %>% filter(sp %in% sp.low.spe$sp)
 
 sp.low.gen <- low.gen %>% group_by(sp) %>% summarise(n=sum(occor)) %>% 
   filter(n>0) %>% select(sp)
-low.gen <- low.gen %>%filter(sp %in% sp.low.gen$sp)
+low.gen <- low.gen %>% filter(sp %in% sp.low.gen$sp)
+```
+
+# Summary species richness
+
+Total richness specialists and generalists in each matrix quality type.
+```{r}
+riq.high.spe <- length(unique(high.spe$sp))
+riq.low.spe <- length(unique(low.spe$sp))
+riq.spe <- length(unique(c(unique(low.spe$sp), unique(high.spe$sp))))
+shared.spe <- riq.high.spe + riq.low.spe - riq.spe
+
+riq.high.gen <- length(unique(high.gen$sp))
+riq.low.gen <- length(unique(low.gen$sp))
+riq.gen <- length(unique(c(unique(low.gen$sp), unique(high.gen$sp))))
+shared.gen <- riq.high.gen + riq.low.gen - riq.gen  
+
+riq.tot <- riq.gen + riq.spe
+```
+
+Richness per landscape and site
+```{r}
+# landscape
+lcc.spe <- high.spe %>% filter(occor>0) %>% 
+  group_by(landscape, sp) %>% 
+  summarise(riq = n()) %>%
+  group_by(landscape) %>%
+  summarise(riq=n()) %>% ungroup() %>%
+  summarise(mean = mean(riq), desv.pad = sd(riq),
+            median = median(riq),
+            max=max(riq), min=min(riq))
+lpp.spe <- low.spe %>% filter(occor>0) %>% 
+  group_by(landscape,  sp) %>% 
+  summarise(riq = n()) %>%
+  group_by(landscape) %>%
+  summarise(riq=n()) %>% ungroup() %>%
+  summarise(mean = mean(riq), desv.pad = sd(riq),
+            median = median(riq),
+            max=max(riq), min=min(riq))
+land.sum <- rbind(lcc.spe, lpp.spe) %>% mutate(matrix = c("High", "low"))
+
+# site
+scc.spe <- high.spe %>% filter(occor>0) %>% 
+  group_by(landscape, site, forest_site400) %>% 
+  summarise(riq = n()) %>% ungroup() %>%
+  summarise(mean = mean(riq), desv.pad = sd(riq),
+            median = median(riq),
+            max=max(riq), min=min(riq))
+spp.spe <- low.spe %>% filter(occor>0) %>% 
+  group_by(landscape, site, forest_site400) %>% 
+  summarise(riq = n()) %>% ungroup() %>%
+  summarise(mean = mean(riq), desv.pad = sd(riq),
+            median = median(riq),
+            max=max(riq), min=min(riq))
+site.sum <- rbind(scc.spe, spp.spe) %>% mutate(matrix = c("High", "Low"))
+
+# generalistas
+
+# landscape
+lcc.gen <- high.gen %>% filter(occor>0) %>% 
+  group_by(landscape, sp) %>% 
+  summarise(riq = n()) %>%
+  group_by(landscape) %>%
+  summarise(riq=n()) %>% ungroup() %>%
+  summarise(mean = mean(riq), desv.pad = sd(riq),
+            median = median(riq),
+            max=max(riq), min=min(riq))
+lpp.gen <- low.gen %>% filter(occor>0) %>% 
+  group_by(landscape,  sp) %>% 
+  summarise(riq = n()) %>%
+  group_by(landscape) %>%
+  summarise(riq=n()) %>% ungroup() %>%
+  summarise(mean = mean(riq), desv.pad = sd(riq),
+            median = median(riq),
+            max=max(riq), min=min(riq))
+gland.sum <- rbind(lcc.gen, lpp.gen) %>% mutate(matrix = c("High", "Low"))
+
+# site
+scc.gen <- high.gen %>% filter(occor>0) %>% 
+  group_by(landscape, site, forest_site400) %>% 
+  summarise(riq = n()) %>% ungroup() %>%
+  summarise(mean = mean(riq), desv.pad = sd(riq),
+            median = median(riq),
+            max=max(riq), min=min(riq))
+spp.gen <- low.gen %>% filter(occor>0) %>% 
+  group_by(landscape, site, forest_site400) %>% 
+  summarise(riq = n()) %>% ungroup() %>%
+  summarise(mean = mean(riq), desv.pad = sd(riq),
+            median = median(riq),
+            max=max(riq), min=min(riq))
+gsite.sum <- rbind(scc.gen, spp.gen) %>% mutate(matrix = c("High", "Low"))
+```
+
+# Summary trait between specialists and generalists
+
+
+```{r}
+bhigh.spe <- high.spe %>% group_by(sp) %>% summarise(body_size = mean(body_size),
+                                     frugi = mean(frugivoryOrig),
+                                     inse  = mean(insectivoryOrig),
+                                     grou = mean(lower_stratumOrig),
+                                     nest = first(nest),
+                                     diet = first(diet),
+                                     stratum =first(stratum),
+                                     ) %>%
+  mutate(dataset="high.spe") %>%
+  as.data.frame()
+blow.spe <- low.spe %>% group_by(sp) %>% summarise(body_size = mean(body_size),
+                                     frugi = mean(frugivoryOrig),
+                                     inse  = mean(insectivoryOrig),
+                                     grou = mean(lower_stratumOrig),
+                                     nest = first(nest),
+                                     diet = first(diet),
+                                     stratum =first(stratum),
+                                     ) %>%
+  mutate(dataset="low.spe") %>%
+  as.data.frame()
+bhigh.gen <- high.gen %>% group_by(sp) %>% summarise(body_size = mean(body_size),
+                                     frugi = mean(frugivoryOrig),
+                                     inse  = mean(insectivoryOrig),
+                                     grou = mean(lower_stratumOrig),
+                                     nest = first(nest),
+                                     diet = first(diet),
+                                     stratum =first(stratum),
+                                     ) %>%
+  mutate(dataset="high.gen") %>%
+  as.data.frame()
+blow.gen <- low.gen %>% group_by(sp) %>% summarise(body_size = mean(body_size),
+                                     frugi = mean(frugivoryOrig),
+                                     inse  = mean(insectivoryOrig),
+                                     grou = mean(lower_stratumOrig),
+                                     nest = first(nest),
+                                     diet = first(diet),
+                                     stratum =first(stratum),
+                                     ) %>%
+  mutate(dataset="low.gen") %>%
+  as.data.frame()
+
+bares <- rbind(bhigh.spe, blow.spe, bhigh.gen, blow.gen)
+colnames(bares)[2:8] <- c("body mass", "% fruits", "% insects", "% lower strata",
+                          "nest type", "main diet", "foraging strata")
+```
+
+```{r}
+nbares <- bares %>% separate(dataset, c("matrix", "habitat")) %>% select(-matrix) %>%
+  distinct() %>%
+  mutate(`body mass` = log(`body mass`)) %>%
+  mutate_at(c("body mass", '% fruits', '% insects', '% lower strata'), scale)
+```
+
+```{r, fig.cap="Boxplots of values for the traits measured as continuous variables for the specialists and generalists. Species from the two regions were grouped."}
+nbares %>% gather("trait", "value", 2:5) %>%
+  ggplot(aes(x=habitat, y=value)) + geom_boxplot() +
+  facet_wrap(~trait) +
+  scale_x_discrete(name = "", labels=c("Specialists", "Generalists"))
+```
+
+```{r tab1}
+tab1 <- nbares %>% tabyl(`nest type`, habitat) %>% 
+  adorn_percentages("col") %>% 
+  adorn_pct_formatting(digits = 0) %>% adorn_ns() %>% rename(var=`nest type`)
+tab2 <- nbares %>% tabyl(`main diet`, habitat) %>% 
+  adorn_percentages("col") %>% 
+  adorn_pct_formatting(digits = 0) %>% adorn_ns() %>% rename(var=`main diet`)
+tab3 <- nbares %>% tabyl(`foraging strata`, habitat) %>% 
+  adorn_percentages("col") %>% 
+  adorn_pct_formatting(digits = 0) %>% adorn_ns()  %>% rename(var=`foraging strata`)
+
+rbind(tab1,tab2,tab3) %>% rename(Traits = var, Specialists = spe, Generalists = gen) %>%
+  kable()
 ```
 
 
