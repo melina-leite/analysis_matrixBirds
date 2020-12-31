@@ -117,7 +117,7 @@ mlow.gen <- glmer(cbind(occor, n.visit-occor) ~
 
 # Local and landscape forest cover effects
 
-Comparing effect sizes and 95% IC for forest cover a local and landscape scale for each assemblage.
+Comparing effect sizes and 95% IC for fixed effects forest cover a local and landscape scale for each assemblage.
 
 ```{r, echo=F}
 fhigh.spe <- tidy(mhigh.spe, effects = "fixed") %>% select(-effect)
@@ -136,18 +136,16 @@ fc <- bind_rows(list(High.Specialists=fhigh.spe,
   arrange(habitat, matrix,term) %>%
   mutate(iclow = estimate - 1.96*std.error,
          icup = estimate + 1.96*std.error, 
-         y= c(2,2, 1,1, 2,2, 1,1),
          habitat = fct_relevel(habitat, "Specialists", "Generalists"),
          term = fct_recode(term, Landscape = "forest_land", Local = "forest_site400")) %>%
   mutate(term = fct_relevel(term, "Local", "Landscape"),
          matrix = fct_relevel(matrix, "High", "Low"))
 
 fig.forest <- fc %>%
-  ggplot(aes(x=estimate, y=y, col=matrix)) + geom_point() + 
+  ggplot(aes(x=estimate, y=matrix, col=matrix)) + geom_point() + 
   geom_errorbarh(aes(xmin=iclow, xmax=icup), height=0) +
   facet_grid(cols= vars(term), rows=vars(habitat), switch = "y") +
   geom_vline(xintercept = 0, linetype="dashed", col="grey") +
-  scale_y_continuous(name="", limits=c(0,3)) +
   scale_color_manual(name="  Matrix \n  quality ",
                      values=c("darkgreen", "sandybrown")) +
  theme(text = element_text(size=12),
@@ -160,16 +158,205 @@ fig.forest <- fc %>%
        axis.text.y = element_blank(),
        axis.line.y = element_blank(),
        axis.ticks.y = element_blank()) +
-  xlab("Effect size") +
+  xlab("Effect size") + ylab("")+
   ggtitle("Forest cover")
 fig.forest
 ```
 
-```{r, echo=F}
+```{r, echo=F, results="hide"}
 jpeg("figures/forest_cover_effectsize.jpg", width=16, height = 10, units="cm", res=150)
 fig.forest
 dev.off()
 ```
+
+Estimating effect sizes (slopes) of local and landscape forest cover for each species in each assemblage. Estimates include fixed effects slopes and random slopes of the species.
+
+```{r, echo=F}
+######
+# slope estimate for each species considering random and fixed effects
+vhs <- coef(mhigh.spe)$sp
+vls <- coef(mlow.spe)$sp
+vhg <- coef(mhigh.gen)$sp
+vlg <- coef(mlow.gen)$sp
+
+
+## high specialists
+vhigh.spe <- high.spe %>% select(sp, lbody_size, nest, diet, lower_stratum) %>% distinct()
+
+sera <- model.matrix(~lbody_size+nest+diet+lower_stratum, data=vhigh.spe)
+
+opa <- sera %>% as.data.frame() %>%
+  mutate(forest_site400 = 1,
+         forest_land = 1,
+         `forest_site400:lbody_size` = 1,
+         `forest_site400:nestclosed`= nestclosed,
+         `forest_site400:nestopen_semi` = nestopen_semi,
+         `forest_site400:dietinsectivorous` =  dietinsectivorous,
+          `forest_site400:dietonivorous` = dietonivorous,
+         `forest_site400:lower_stratum` =     1, 
+          `lbody_size:forest_land` = 1,         
+         `nestclosed:forest_land` = nestclosed,
+         `nestopen_semi:forest_land` = nestopen_semi,       
+         `dietinsectivorous:forest_land` = dietinsectivorous,
+         `dietonivorous:forest_land`  =   dietonivorous,
+         `lower_stratum:forest_land`= 1) 
+upis <- opa %>% select(colnames(vhs))
+#names(upis) == names(vhs)
+
+ult <- upis*vhs
+
+vhs.loc <- ult[,c(2,3,10:15)]
+vhs$local <- rowSums(vhs.loc)
+vhs.land <- ult[, c(9,16:21)]
+vhs$land <- rowSums(vhs.land)
+
+## low specialists
+vlow.spe <- low.spe %>% select(sp, lbody_size, nest, diet, lower_stratum) %>% distinct()
+
+sera <- model.matrix(~lbody_size+nest+diet+lower_stratum, data=vlow.spe)
+
+opa <- sera %>% as.data.frame() %>%
+  mutate(forest_site400 = 1,
+         forest_land = 1,
+         `forest_site400:lbody_size` = 1,
+         `forest_site400:nestclosed`= nestclosed,
+         `forest_site400:nestopen_semi` = nestopen_semi,
+         `forest_site400:dietgranivorous` =  dietgranivorous,
+         `forest_site400:dietinsectivorous` =  dietinsectivorous,
+         `forest_site400:lower_stratum` = 1, 
+         `lbody_size:forest_land` = 1,         
+         `nestclosed:forest_land` = nestclosed,
+         `nestopen_semi:forest_land` = nestopen_semi,       
+         `dietinsectivorous:forest_land` = dietinsectivorous,
+         `dietgranivorous:forest_land` = dietgranivorous,
+         `lower_stratum:forest_land`= 1) 
+upis <- opa %>% select(colnames(vls))
+#colnames(upis) == colnames(vls)
+
+ult <- upis*vls
+
+vls.loc <- ult[,c(2,3,10:15)]
+vls$local <- rowSums(vls.loc)
+vls.land <- ult[, c(9,16:21)]
+vls$land <- rowSums(vls.land)
+
+
+## high specialists
+vhigh.gen <- high.gen %>% select(sp, lbody_size, nest, diet, lower_stratum) %>% distinct()
+
+sera <- model.matrix(~lbody_size+nest+diet+lower_stratum, data=vhigh.gen)
+
+opa <- sera %>% as.data.frame() %>%
+  mutate(forest_site400 = 1,
+         forest_land = 1,
+         `forest_site400:lbody_size` = 1,
+         `forest_site400:nestclosed`= nestclosed,
+         `forest_site400:nestopen_semi` = nestopen_semi,
+         `forest_site400:dietgranivorous` =  dietgranivorous,
+         `forest_site400:dietinsectivorous` =  dietinsectivorous,
+         `forest_site400:dietnectarivorous` =  dietnectarivorous,
+         `forest_site400:dietonivorous` = dietonivorous,
+         `forest_site400:lower_stratum` =     1, 
+         `lbody_size:forest_land` = 1,         
+         `nestclosed:forest_land` = nestclosed,
+         `nestopen_semi:forest_land` = nestopen_semi,
+         `dietgranivorous:forest_land` = dietgranivorous,
+         `dietinsectivorous:forest_land` = dietinsectivorous,
+         `dietnectarivorous:forest_land` = dietnectarivorous,
+         `dietonivorous:forest_land`  =   dietonivorous,
+         `lower_stratum:forest_land`= 1) 
+upis <- opa %>% select(colnames(vhg))
+#names(upis) == names(vhg)
+
+ult <- upis*vhg
+
+vhg.loc <- ult[,c(2,3,10:15)]
+vhg$local <- rowSums(vhg.loc)
+vhg.land <- ult[, c(9,16:21)]
+vhg$land <- rowSums(vhg.land)
+
+## low specialists
+vlow.gen <- low.gen %>% select(sp, lbody_size, nest, diet, lower_stratum) %>% distinct()
+
+sera <- model.matrix(~lbody_size+nest+diet+lower_stratum, data=vlow.gen)
+
+opa <- sera %>% as.data.frame() %>%
+  mutate(forest_site400 = 1,
+         forest_land = 1,
+         `forest_site400:lbody_size` = 1,
+         `forest_site400:nestclosed`= nestclosed,
+         `forest_site400:nestopen_semi` = nestopen_semi,
+         `forest_site400:dietgranivorous` =  dietgranivorous,
+         `forest_site400:dietinsectivorous` =  dietinsectivorous,
+         `forest_site400:dietnectarivorous` =  dietnectarivorous,
+         `forest_site400:dietonivorous` =  dietonivorous,
+         `forest_site400:lower_stratum` = 1, 
+         `lbody_size:forest_land` = 1,         
+         `nestclosed:forest_land` = nestclosed,
+         `nestopen_semi:forest_land` = nestopen_semi,
+         `dietgranivorous:forest_land` = dietgranivorous,
+         `dietinsectivorous:forest_land` = dietinsectivorous,
+         `dietnectarivorous:forest_land` = dietnectarivorous,
+         `dietonivorous:forest_land` =dietonivorous,
+         `lower_stratum:forest_land`= 1) 
+upis <- opa %>% select(colnames(vlg))
+#colnames(upis) == colnames(vlg)
+
+ult <- upis*vlg
+
+vlg.loc <- ult[,c(2,3,10:15)]
+vlg$local <- rowSums(vlg.loc)
+vlg.land <- ult[, c(9,16:21)]
+vlg$land <- rowSums(vlg.land)
+
+ok <- bind_rows(list(High.Specialists = vhs[, c("local", "land")],
+               Low.Specialists = vls[, c("local", "land")],
+               High.Generalists = vhg[, c("local", "land")],
+               Low.Generalists = vlg[, c("local", "land")]),
+          .id="model") %>%
+  separate(model, c("matrix", "habitat")) %>% 
+  pivot_longer(3:4, names_to = "term",values_to = "estimate") %>%
+  mutate(habitat = fct_relevel(habitat, "Specialists", "Generalists"),
+         term = fct_recode(term, Landscape = "land", 
+                           Local = "local")) %>%
+  mutate(term = fct_relevel(term, "Local", "Landscape"),
+         matrix = fct_relevel(matrix, "High", "Low"))
+```
+
+```{r, echo=F}
+effects.sp<- ok %>%
+ggplot(aes(x=estimate, y=matrix, fill=matrix, col=matrix))+
+  geom_violin(alpha=0.3)+
+  geom_boxplot(width=0.1,, alpha=0.3) +
+  geom_vline(xintercept = 0, linetype="dashed") +
+  facet_grid(cols= vars(term), rows=vars(habitat), switch = "y") +
+  scale_fill_manual(name="  Matrix \n  quality ",
+                     values=c("darkgreen", "sandybrown")) +
+  scale_color_manual(name="  Matrix \n  quality ",
+                    values=c("darkgreen", "sandybrown")) +
+  theme(text = element_text(size=12),
+        axis.text = element_text(size=12),
+        strip.text.x = element_text(size=12, margin=margin(t=2,b=3)),
+        strip.text.y = element_text(size=12, margin=margin(r=2,l=3)),
+        legend.position = c(0.89, 0.2),
+        plot.title = element_text(hjust = 0.5),
+        legend.box.background = element_rect(fill="snow2", color="snow2"),
+        axis.text.y = element_blank(),
+        axis.line.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  ylab("") +
+  xlab("Effect size") +
+  ggtitle("Forest cover")
+effects.sp
+```
+
+
+```{r, echo=F,results="hide"}
+jpeg("figures/forest_cover_effectsize_perSP.jpg", width=16, height = 10, units="cm", res=150)
+effects.sp
+dev.off()
+```
+
 
 
 # Trait importance metric
