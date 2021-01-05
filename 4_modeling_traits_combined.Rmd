@@ -532,6 +532,36 @@ figtrait.env
 dev.off()
 ```
 
+# Comparing effect sizes of interaction terms among assemblages
+
+One way to compare the importance of habitat loss filtering across assemblages is to calculate the mean of the absolute values of the effect sizes, given that the effect sizer are all standardized.
+The mean is important because, there are some assemblages with more than 3 different types of diet, so different number of effects. 
+
+```{r}
+all=c(mean(abs(fixef(mhigh.spe)[grep(":", names(fixef(mhigh.spe)))])),
+      mean(abs(fixef(mlow.spe) [grep(":", names(fixef(mlow.spe)))])),
+      mean(abs(fixef(mhigh.gen)[grep(":", names(fixef(mhigh.gen)))])),
+      mean(abs(fixef(mlow.gen) [grep(":", names(fixef(mlow.gen)))])))
+
+local=c(mean(abs(fixef(mhigh.spe)[grep("forest_site400:", names(fixef(mhigh.spe)))])),
+        mean(abs(fixef(mlow.spe) [grep("forest_site400:", names(fixef(mlow.spe)))])),
+        mean(abs(fixef(mhigh.gen)[grep("forest_site400:", names(fixef(mhigh.gen)))])),
+        mean(abs(fixef(mlow.gen) [grep("forest_site400:", names(fixef(mlow.gen)))])))
+
+land=c(mean(abs(fixef(mhigh.spe)[grep(":forest_land", names(fixef(mhigh.spe)))])),
+       mean(abs(fixef(mlow.spe)[grep(":forest_land", names(fixef(mlow.spe)))])),
+       mean(abs(fixef(mhigh.gen)[grep(":forest_land", names(fixef(mhigh.gen)))])),
+       mean(abs(fixef(mlow.gen)[grep(":forest_land", names(fixef(mlow.gen)))])))
+
+data.frame(matrix = c("high", "low", "high", "low"),
+           habitat = c("specialist", "specialist", "generalist", "generalist"),
+           all = all, local=local, landscape=land) %>%
+  kable(digits=3, caption="Effect sizes metric for all, only local, only landscape interaction terms")
+```
+
+
+
+
 # R^2^ models
 
 ```{r}
@@ -583,6 +613,134 @@ jpeg("figures/fig_R2.jpg", width=20, height = 12, units="cm", res=150)
 fig.part
 dev.off()
 ```
+
+# Trying additive variance partitioning of the fixed effects 
+
+```{r}
+# Auxiliary function to calculate R2s of each term in models
+r2.calcAD <- function(model, coefs= c("forest_site400", "forest_land"), atrib="diet"){
+  
+  coefs = c("(Intercept)", coefs)
+  
+  # variance fixed effects
+  var.f <- var(as.vector(fixef(model) %*% t(model@pp$X)))
+  
+  ############### bein intervention #####
+  
+  # variance fixed effects separating main and interation effects
+  effects <- names(fixef(model))
+  
+  # trait
+  efftrait <- effects[!effects %in% grep(":", effects, value=T)]
+  efftrait <- efftrait[!efftrait %in% coefs[-1]]
+  traitmodel <- model@pp$X[, efftrait]
+  
+  traitvec <- fixef(model)[efftrait]
+  var.trait <-  var(as.vector(traitvec %*% t(traitmodel)))
+  
+  # env
+  effenv <- coefs[-1]
+  envmodel <- model@pp$X[, effenv]
+  
+  envvec <- fixef(model)[effenv]
+  var.env <-  var(as.vector(envvec %*% t(envmodel)))
+  
+  # interaction
+  intermodel <- model@pp$X[, grep(":", colnames(model@pp$X), value=T)]
+  intervec <- fixef(model)[colnames(intermodel)]
+  var.inter <-  var(as.vector(intervec %*% t(intermodel)))
+  
+  
+  #var.trait + var.env + var.inter
+
+  # the variance of the fixed effects withous partition is smaler because
+  # in the partitioning I'm ingoring the strong covariance among terms
+  # especially because the interaction group of effects is obviously
+  # highly correlated with the other terms.
+  
+  
+  ############### end intervention #####
+  
+  
+    
+  # variance sp random effect (intercept + slope)
+  X <- model.matrix(model)
+  n <- nrow(X)
+  Z <- X[,coefs]
+  sigma <- VarCorr(model)$sp
+  
+  var.sp <- sum(diag(Z %*% sigma %*% t(Z)))/n
+  
+  
+  # variance (trait|site) and (trait|landscape)
+  if(length(atrib)>1){
+    trait <- c("(Intercept)")
+    while(length(atrib)>0){
+      cols1 <- grep(atrib[1], colnames(X), value=T)
+      cols <- grep(":", cols1, value=T, invert = T)
+      trait <- c(trait, cols)
+      atrib <- atrib[-1]
+    }
+  }
+  else{
+    cols1 <- grep(atrib, colnames(X), value=T)
+    cols <- grep(":", cols1, value=T, invert = T)
+    trait <- c("(Intercept)", cols)
+  }
+  
+  W <- X[,trait]
+  sigma.site <- VarCorr(model)$site
+  var.site <- sum(diag(W %*% sigma.site %*% t(W)))/n
+  sigma.land <- VarCorr(model)$landscape
+  var.landscape <- sum(diag(W %*% sigma.land %*% t(W)))/n
+  
+  
+  # variance (1|landscape:sp) and (1|site:sp)
+  var.landscape.sp <- VarCorr(model)$`landscape:sp`[1]
+  var.site.sp <- VarCorr(model)$`site:sp`[1]
+  
+  
+  denominador <- var.f + var.sp + var.landscape + var.site + var.landscape.sp +
+    var.site.sp + pi^2/3
+  
+  r2.fix <- var.f/denominador
+  r2.cond <- (var.f + var.sp + var.landscape + var.site + var.landscape.sp +
+                var.site.sp)/denominador
+  
+  res <- data.frame(overall = round(r2.cond,3),
+                    fixed.effects = round(r2.fix,3),
+                    sp = round(var.sp/denominador, 3),
+                    landscape.sp = round(var.landscape.sp/denominador, 3),
+                    site.sp = round(var.site.sp/denominador, 3),
+                    landscape = round(var.landscape/denominador, 3),
+                    site = round(var.site/denominador, 3),
+                    var.trait = var.trait, # intervention
+                    var.env  = var.env,    # intervention
+                    var.inter = var.inter)  # intervention
+  return(res) 
+}
+```
+
+```{r}
+traits = c("lbody_size", "nest", "diet", "lower_stratum")
+vals <- bind_rows(list(High_Specialists = r2.calcAD(mhigh.spe, atrib=traits),
+                       Low_Specialists=r2.calcAD(mlow.spe, atrib=traits),
+                       High_Generalists=r2.calcAD(mhigh.gen, atrib=traits),
+                       Low_Generalists=r2.calcAD(mlow.gen, atrib=traits)), .id="assemblage")
+
+fix.var <- vals[,c(1,9:11)]
+
+
+fix.var$sum = rowSums(fix.var[,2:4])
+
+fix.var$Pvar.trait = fix.var$var.trait*100/fix.var$sum
+fix.var$Pvar.env = fix.var$var.env*100/fix.var$sum
+fix.var$Pvar.inter = fix.var$var.inter*100/fix.var$sum
+
+kable(fix.var)
+```
+
+
 
 
 # Saving models results
