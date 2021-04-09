@@ -138,33 +138,55 @@ fc <- bind_rows(list(High.Specialists=fhigh.spe,
          icup = estimate + 1.96*std.error, 
          habitat = fct_relevel(habitat, "Specialists", "Generalists"),
          term = fct_recode(term, Landscape = "forest_land", Local = "forest_site400")) %>%
-  mutate(term = fct_relevel(term, "Local", "Landscape"),
-         matrix = fct_relevel(matrix, "High", "Low"))
+  mutate(term = fct_relevel(term, "Landscape", "Local"),
+         matrix = fct_relevel(matrix, "Low", "High"))
 
 fig.forest <- fc %>%
-  ggplot(aes(x=estimate, y=matrix, col=matrix)) + geom_point() + 
-  geom_errorbarh(aes(xmin=iclow, xmax=icup), height=0) +
-  facet_grid(cols= vars(term), rows=vars(habitat), switch = "y") +
+  ggplot(aes(x=estimate, y=term, col=term)) + geom_point(size=3) + 
+  geom_errorbarh(aes(xmin=iclow, xmax=icup), height=0, size=1.5) +
+  facet_grid(cols= vars(matrix), rows=vars(habitat)) +
   geom_vline(xintercept = 0, linetype="dashed", col="grey") +
-  scale_color_manual(name="  Matrix \n  quality ",
-                     values=c("darkgreen", "sandybrown")) +
+  scale_color_manual(name="  Forest \n  cover ",
+                     values=c( "yellow4", "turquoise4")) +
  theme(text = element_text(size=12),
         axis.text = element_text(size=12),
         strip.text.x = element_text(size=12, margin=margin(t=2,b=3)),
         strip.text.y = element_text(size=12, margin=margin(r=2,l=3)),
-       legend.position = c(0.89, 0.2),
+       #legend.position = c(0.89, 0.2),
        plot.title = element_text(hjust = 0.5),
-       legend.box.background = element_rect(fill="snow2", color="snow2"),
-       axis.text.y = element_blank(),
-       axis.line.y = element_blank(),
-       axis.ticks.y = element_blank()) +
-  xlab("Effect size") + ylab("")+
-  ggtitle("Forest cover")
-fig.forest
+       legend.position = "none",
+       panel.background = element_rect(fill="#FAFAFA", color="#FAFAFA")
+       ) +
+  xlab("Effect size") + ylab("Forest cover")+
+  ggtitle("Matrix quality")
+```
+
+```{r, eval=F, echo=F}
+# alternative figure
+# fig.forest <- fc %>%
+#   ggplot(aes(x=estimate, y=matrix, col=matrix)) + geom_point() + 
+#   geom_errorbarh(aes(xmin=iclow, xmax=icup), height=0) +
+#   facet_grid(cols= vars(term), rows=vars(habitat), switch = "y") +
+#   geom_vline(xintercept = 0, linetype="dashed", col="grey") +
+#   scale_color_manual(name="  Matrix \n  quality ",
+#                      values=c("darkgreen", "sandybrown")) +
+#  theme(text = element_text(size=12),
+#         axis.text = element_text(size=12),
+#         strip.text.x = element_text(size=12, margin=margin(t=2,b=3)),
+#         strip.text.y = element_text(size=12, margin=margin(r=2,l=3)),
+#        legend.position = c(0.89, 0.2),
+#        plot.title = element_text(hjust = 0.5),
+#        legend.box.background = element_rect(fill="snow2", color="snow2"),
+#        axis.text.y = element_blank(),
+#        axis.line.y = element_blank(),
+#        axis.ticks.y = element_blank()) +
+#   xlab("Effect size") + ylab("")+
+#   ggtitle("Forest cover")
+# fig.forest
 ```
 
 ```{r, echo=F, results="hide"}
-jpeg("figures/forest_cover_effectsize.jpg", width=16, height = 10, units="cm", res=150)
+jpeg("figures/forest_cover_effectsize2.jpg", width=16, height = 10, units="cm", res=150)
 fig.forest
 dev.off()
 ```
@@ -516,10 +538,11 @@ figtrait.env <- tra %>% gather("trait", "value", 3:10) %>%
   scale_color_manual(name="Matrix \n quality",
                      labels = c("High", "Low"),
                      values = c("darkgreen", "sandybrown")) +
-  ylab("Trait importance (%)")+
+  ylab("Trait importance for \n habitat loss filtering (%)")+
   theme(axis.text.x = element_text(angle=45, hjust=1),
         text = element_text(size=12),
         axis.text = element_text(size=12),
+        panel.background = element_rect(fill="#FAFAFA", color="#FAFAFA"),
         legend.box.background = element_rect(fill="snow2", color="snow2"),
         strip.text = element_text(size=12, margin=margin(t=2,b=3)),
         legend.justification = c(1, 0), legend.position = c(1, 0.65)) 
@@ -558,9 +581,6 @@ data.frame(matrix = c("high", "low", "high", "low"),
            all = all, local=local, landscape=land) %>%
   kable(digits=3, caption="Effect sizes metric for all, only local, only landscape interaction terms")
 ```
-
-
-
 
 # R^2^ models
 
@@ -714,6 +734,7 @@ r2.calcAD <- function(model, coefs= c("forest_site400", "forest_land"), atrib="d
                     site.sp = round(var.site.sp/denominador, 3),
                     landscape = round(var.landscape/denominador, 3),
                     site = round(var.site/denominador, 3),
+                    var.fix = var.f, ##
                     var.trait = var.trait, # intervention
                     var.env  = var.env,    # intervention
                     var.inter = var.inter)  # intervention
@@ -728,10 +749,10 @@ vals <- bind_rows(list(High_Specialists = r2.calcAD(mhigh.spe, atrib=traits),
                        High_Generalists=r2.calcAD(mhigh.gen, atrib=traits),
                        Low_Generalists=r2.calcAD(mlow.gen, atrib=traits)), .id="assemblage")
 
-fix.var <- vals[,c(1,9:11)]
+fix.var <- vals[,c(1:3,9:12)]
 
 
-fix.var$sum = rowSums(fix.var[,2:4])
+fix.var$sum = rowSums(fix.var[,5:7])
 
 fix.var$Pvar.trait = fix.var$var.trait*100/fix.var$sum
 fix.var$Pvar.env = fix.var$var.env*100/fix.var$sum

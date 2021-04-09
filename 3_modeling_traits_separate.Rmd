@@ -39,6 +39,24 @@ load("datasets.Rdata")
 load("models_outputs/models_traits.Rdata")
 ```
 
+```{r}
+# objects for all predictions
+# local forest cover
+f400st.high <- seq(min(high.spe$forest_site400), max(high.spe$forest_site400),
+                     length.out=20)
+f400Orig.high <- f400st.high * sd(high.spe$forest_site400Orig) +
+                                              mean(high.spe$forest_site400Orig)
+f400st.low <- seq(min(low.spe$forest_site400), max(low.spe$forest_site400),
+                    length.out=20)
+f400Orig.low <-f400st.low * sd(low.spe$forest_site400Orig) +
+                                              mean(low.spe$forest_site400Orig)
+
+# landscape cover 3 values
+lands <- c(20,30,40)
+land.high <- (lands- mean(high.spe$forest_landOrig))/sd(high.spe$forest_landOrig)
+land.low  <- (lands - mean(low.spe$forest_landOrig))/sd(low.spe$forest_landOrig)
+```
+
 # Individual models for each trait
 
 ## Body size
@@ -76,23 +94,6 @@ bodylow.gen <- glmer(cbind(occor, n.visit-occor) ~
 
 ### Predictions
 
-```{r}
-# for all predictions
-# local forest cover
-f400st.high <- seq(min(high.spe$forest_site400), max(high.spe$forest_site400),
-                     length.out=20)
-f400Orig.high <- f400st.high * sd(high.spe$forest_site400Orig) +
-                                              mean(high.spe$forest_site400Orig)
-f400st.low <- seq(min(low.spe$forest_site400), max(low.spe$forest_site400),
-                    length.out=20)
-f400Orig.low <-f400st.low * sd(low.spe$forest_site400Orig) +
-                                              mean(low.spe$forest_site400Orig)
-
-# landscape cover 3 values
-lands <- c(20,30,40)
-land.high <- (lands- mean(high.spe$forest_landOrig))/sd(high.spe$forest_landOrig)
-land.low  <- (lands - mean(low.spe$forest_landOrig))/sd(low.spe$forest_landOrig)
-```
 
 ```{r}
 # body size 3 values
@@ -1022,6 +1023,7 @@ figdiet <- pdiet %>% filter(forest_land == 30) %>%
         text = element_text(size=14),
         axis.text = element_text(size=12),
         legend.position = "right",
+        panel.background = element_rect(fill="#FAFAFA", color="#FAFAFA"),
         legend.box.background = element_rect(fill="snow2", color="snow2")) +
   ggtitle("Main diet")
 
@@ -1042,6 +1044,7 @@ ggplot(aes(x=forest_site400, y=pred, col=matrix)) +
          strip.text.y = element_blank(),
         text = element_text(size=14),
         axis.text = element_text(size=12),
+        panel.background = element_rect(fill="#FAFAFA", color="#FAFAFA"),
         legend.position = "none") +
   ggtitle("Body mass")
 
@@ -1059,22 +1062,23 @@ ggplot(aes(x=forest_site400, y=pred, col=matrix)) +
         text = element_text(size=14),
         axis.text.y = element_blank(),
         axis.text = element_text(size=12),
+        panel.background = element_rect(fill="#FAFAFA", color="#FAFAFA"),
         legend.position = "none") +
   ggtitle("Nest type")
 ```
 
 ```{r, eval=F}
-jpeg("figures/traits_diet_nest_body.jpg", width = 20, height = 20, res=150, units="cm" )
+jpeg("figures/traits_diet_nest_body.jpg", width = 20, height = 18, res=150, units="cm" )
 (figdiet2+legenda +plot_layout(widths = c(1,0.07)))/(figbody+fignest) 
 dev.off()
 ```
 
 # Trait importance metric
 
-Models withouth trait-enviroment interactions
+Models withouth trait-enviroment interactions, to calculate trait importance metric.
 
 
-```{r}
+```{r, eval=F}
 bodyhigh.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
                         forest_site400 + forest_land + lbody_size +
             (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
@@ -1103,10 +1107,7 @@ bodylow.gen2 <- glmer(cbind(occor, n.visit-occor) ~
                        family=binomial, data=low.gen,
                        nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
                                            optCtrl = list(maxfun = 500000)))
-```
 
-
-```{r}
 nesthigh.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
                         forest_site400 + forest_land + nest +
             (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
