@@ -364,7 +364,7 @@ flow.gen <- rbind(pforest_site400[,2:3], pforest_site600[,2:3], pforest_site800[
          dataset="low.gen")
 ```
 
-In Figure \ref{fig:fig.pred}, we present the occurrence probability predicted for the models with different local forest cover scales for all the assemblages. Predictions were quite similar and decreased with forest cover for the specialists, especially in the forest matrix region, and increased or remained flat for the generalists.
+In Figure \ref{fig:figpred}, we present the occurrence probability predicted for the models with different local forest cover scales for all the assemblages. Predictions were quite similar and decreased with forest cover for the specialists, especially in the low-quality matrix region, and increased or remained flat for the generalists.
 
 ```{r figpred, fig.cap="Predictions of the models with different local forest cover scales (lines) for specialists and generalists in both regions."}
 labs <- c(high = "High-quality matrix", low="Low-quality matrix",
@@ -640,7 +640,6 @@ kable(varif, "latex", booktabs=T, caption= "Variance Inflation Factor index for 
 ```
 
 Predictions of the models are present in Figure \ref{fig:fig.pred42}. It is important to notice the differences in 20 and 40% landscape forest cover predictions for the specialists in the low-quality matrix.
-
 
 ```{r}
 pforest_site400 <- data.frame(forest_site400 = seq(min(high.spe$forest_site400),
