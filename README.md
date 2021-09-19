@@ -3,7 +3,7 @@ Data and code for the analysis of the manuscript Leite et al in preparation
 
 Preliminary title:
 
-## Matrix quality determines the strength of habitat loss filtering on bird community assembly at landscape scales
+## Matrix quality determines the strength of habitat loss filtering on bird communities at landscape scales
 
 **Keywords**: environmental filter, ecological drift, functional traits, trait-environment relationship, community ecology, landscape structure.
 
