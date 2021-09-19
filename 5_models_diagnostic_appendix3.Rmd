@@ -9,6 +9,14 @@ output:
 documentclass: article
 classoption: a4paper
 header-includes:
+    - \renewcommand{\figurename}{Figure S3.}
+    - \makeatletter
+    - \def\fnum@figure{\figurename\thefigure}
+    - \makeatother
+    - \renewcommand{\tablename}{Table S3.}
+    - \makeatletter
+    - \def\fnum@table{\tablename\thetable}
+    - \makeatother
     - \usepackage{graphicx}
     - \usepackage{float}
     - \usepackage{setspace}\doublespacing
@@ -102,7 +110,7 @@ mhigh.spe <- glmer(cbind(occor, n.visit-occor) ~
                                     optCtrl = list(maxfun = 500000)))
 ```
 
-We ran separate models for each assemblage and trait. Afterwards, we ran one model with the combination of the traits body mass, diet, nest type and % of lower strata use. Table \ref{tab:tabr2} shows the marginal R^2^ of all models terms.
+We ran separate models for each assemblage and trait. Afterwards, we ran one model with the combination of the traits body mass, diet, nest type and % of lower strata use. Table S3.\ref{tab:tabr2} shows the marginal R^2^ of all models terms.
 
 ```{r}
 traits = c("lbody_size", "nest", "diet", "lower_stratum")
@@ -184,29 +192,32 @@ kable(todos, "latex", booktabs=T, caption= "Overall and marginal R-squared of tr
 
 # 2. Models coeficients
 
-```{r}
+
+Tables S3.\ref{tab:s3.2}, S3.\ref{tab:s3.3}, S3.\ref{tab:s3.4}, and S3.\ref{tab:s3.5} show the coefficients for each model.
+
+```{r, s3.2}
  tidy(mhigh.spe, effects = "fixed") %>% 
   kable(digits=2,"latex", booktabs=T, caption = "Fixed effects oefficients for the model of specialists in high-quality matrix landscapes.")
 ```
 
-```{r}
+```{r, s3.3}
  tidy(mlow.spe, effects = "fixed") %>% 
   kable(digits=2,"latex", booktabs=T,  caption = "Fixed effects oefficients for the model of specialists in low-quality matrix landscapes.")
 ```
 
-```{r}
+```{r, s3.4}
  tidy(mhigh.gen, effects = "fixed") %>% 
   kable(digits=2, "latex", booktabs=T, caption = "Fixed effects oefficients for the model of generalists in high-quality matrix landscapes.")
 ```
 
-```{r}
+```{r, s3.5}
  tidy(mlow.gen, effects = "fixed") %>% 
   kable(digits=2,"latex", booktabs=T, caption = "Fixed effects oefficients for the model of generalists in low-quality matrix landscapes.")
 ```
 
 # 3. Models diagnostic
 
-Variance Inflation Factor of the model parameters for each dataset in Table \ref{tab:vif3}.
+Variance Inflation Factor of the model parameters for each dataset in Table S3.\ref{tab:vif3}.
 
 ```{r vif3}
 vifhigh.spe <- data.frame(termo = names(vif.mer(mhigh.spe2)),
@@ -230,12 +241,12 @@ kable(varif, "latex", booktabs=T, caption= "Variance Inflation Factor index for 
 
 \FloatBarrier
 
-Example of the residual diagnostic of the model with the combined traits (main diet, body mass, nest type and % of lower strata use) for the forest specialists in high-quality matrix landscapes. The models' diagnostics for the other assemblages were all similar and can be checked in the Rmd file of the analysis repository.
+Example of the residual diagnostic of the model with the combined traits (main diet, body mass, nest type and % of lower strata use) for the forest specialists in high-quality matrix landscapes. The models' diagnostics for the other assemblages were all similar and can be checked in this Rmd file.
 
 
 ## Residual correlations among species and sites
 
-Below we present the residual Kendall correlations among species for the models using the predictions for `site:sp` random effect (Observation Level Random Effect). For the residual correlations we followed the code provided by @miller_functional_2018.
+Below we present the Kendall correlations for the residuals among species and sites for the models using the predictions for `site:sp` random effect (Observation Level Random Effect). For the residual correlations we followed the code provided by @miller_functional_2018.
 
 ```{r, fig.height=4}
 nsites = 40
@@ -437,7 +448,7 @@ mtext("Sites", side=3, cex=1.2)
 
 ## Residual diagnostic
 
-Using DHARMa package (@hartig_dharma:_2018) for the test of uniformity of quantile residuals. 
+We used DHARMa package (@hartig_dharma:_2018) for the diagnostic of quantile residuals. 
 
 ```{r}
 resce <- simulateResiduals(mhigh.spe, n=1000, ref.form=~0)
@@ -516,9 +527,10 @@ bind_rows(list(High=shigh.spe,Low=slow.spe), .id="Matrix quality") %>%
   mutate(forest_site400Orig = round(forest_site400Orig)) %>%
   ggplot(aes(x=forest_site400Orig, y=pretes, col=`Matrix quality` )) +
   geom_line() +
-  facet_wrap(~sp, ncol=7) + 
+  facet_wrap(~sp, ncol=8) + 
   theme_cowplot() +
-  theme(legend.position = "top")+
+  theme(legend.position = "top",
+        strip.text.x = element_text(hjust=0, size=10))+
  scale_y_continuous(name= "Occurrence probability") +
   scale_x_continuous(name="Local forest cover (%)") +
   ggtitle("Forest specialists")
@@ -558,9 +570,10 @@ bind_rows(list(High=shigh.gen,Low=slow.gen), .id="Matrix quality") %>%
   mutate(forest_site400Orig = round(forest_site400Orig)) %>%
   ggplot(aes(x=forest_site400Orig, y=pretes, col=`Matrix quality` )) +
   geom_line() +
-  facet_wrap(~sp, ncol=7) + 
+  facet_wrap(~sp, ncol=8) + 
   theme_cowplot() +
-  theme(legend.position = "top")+
+  theme(legend.position = "top",
+        strip.text.x = element_text(hjust=0, size=10))+
  scale_y_continuous(name= "Occurrence probability") +
   scale_x_continuous(name="Local forest cover (%)") +
   ggtitle("Forest generalists")

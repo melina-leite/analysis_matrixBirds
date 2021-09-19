@@ -1,33 +1,42 @@
 ---
-title: "Appendix 2: Forest cover at local and landscape scale"
+title: 'Appendix 2: Forest cover at local and landscape scale'
 bibliography: refs_appendix.bib
 csl: references-style.csl
 output:
   pdf_document:
     highlight: zenburn
     toc: no
+  word_document:
+    toc: no
 documentclass: article
 classoption: a4paper
 header-includes:
-    - \usepackage{graphicx}
-    - \usepackage{float}
-    - \usepackage{setspace}\doublespacing
-    - \setlength{\parindent}{4em}
-    - \usepackage{indentfirst}
-    - \usepackage{booktabs}
-    - \usepackage{longtable}
-    - \usepackage{array}
-    - \usepackage{multirow}
-    #- \usepackage[table]{xcolor}
-    - \usepackage{colortbl}
-    - \usepackage{pdflscape}
-    - \usepackage{tabu}
-    - \usepackage{threeparttable}
-    - \usepackage{threeparttablex}
-    - \usepackage[normalem]{ulem}
-    - \usepackage{makecell}
-    - \usepackage{placeins}
-    - \usepackage[margin=0.8in]{geometry}
+- \renewcommand{\figurename}{Figure S2.}
+- \makeatletter
+- \def\fnum@figure{\figurename\thefigure}
+- \makeatother
+- \renewcommand{\tablename}{Table S2.}
+- \makeatletter
+- \def\fnum@table{\tablename\thetable}
+- \makeatother
+- \usepackage{graphicx}
+- \usepackage{float}
+- \usepackage{setspace}\doublespacing
+- \setlength{\parindent}{4em}
+- \usepackage{indentfirst}
+- \usepackage{booktabs}
+- \usepackage{longtable}
+- \usepackage{array}
+- \usepackage{multirow}
+- \usepackage{colortbl}
+- \usepackage{pdflscape}
+- \usepackage{tabu}
+- \usepackage{threeparttable}
+- \usepackage{threeparttablex}
+- \usepackage[normalem]{ulem}
+- \usepackage{makecell}
+- \usepackage{placeins}
+- \usepackage[margin=0.8in]{geometry}
 ---
 
 \fontsize{11}{11}
@@ -74,16 +83,14 @@ vif.mer <- function (fit) {
 }
 ```
 
-This appendix is a description of the forest cover variables at local and landscape scale and the baseline models for the selection of the best scale for the local forest cover variable for each dataset. 
-
-For the local scale, we measured the percentage of forest cover within buffers of 400, 600 and 800 m around each sampling site. For the landscape forest cover, we used the 2 km buffer around the landscape centroid.
+This appendix is a description of the forest cover variables at both local and landscape scales. We present the baseline models for the selection of the best scale for the local forest cover variable for each dataset. For the local scale, we measured the percentage of forest cover within buffers of 400, 600 and 800 m around each sampling site. For the landscape forest cover, we used the 2 km buffer around the landscape centroid.
 
 
 # 1. Relationships among forest cover variables
 
-We calculated Pearson correlation coefficients for forest cover variables in each matrix quality region (Figure \ref{fig:fig1}). Also, we ploted the range of local forest cover (400 m) within the landscapes to see how local forest cover varies among landscapes in both regions (Figure \ref{fig:fig2}).
+We calculated Pearson correlation coefficients for forest cover variables in each matrix quality region (Figure S2.\ref{fig:fig1}). Also, we ploted the range of local forest cover (400 m) within the landscapes to see how local forest cover varies among landscapes in both regions (Figure S2.\ref{fig:fig2}).
 
-```{r fig1, fig.cap="Correlations among forest cover variables in the high-quality (left) and low-quality matrix regions (right)."}
+```{r fig1, fig.cap="Correlations among forest cover variables in the high-quality (left) and low-quality matrix (right) landscapes."}
 
 high.cor <- env[which(env$matrix == "high_quality"), c(10,11,12,9)]
 colnames(high.cor) <- c("Local 400m", "Local 600m", 
@@ -102,10 +109,10 @@ corrplot(cor(low.cor),method="number",type="lower", diag=F,
 mtext("Low-quality matrix", cex=1.2)
 ```
 
-```{r fig2, warning=F, fig.height=4, fig.cap="Range of local forest cover (buffer 400 m) within each landscape (buffer 2 km) for both regions. Each line represent a landscape and the dots area the local forest cover for each sampling site."}
+```{r fig2, warning=F, fig.height=4, fig.cap="Range of local forest cover (buffer 400 m) within each landscape (buffer 2 km) for both landscapes with different matrix quality. Each line represent a landscape and the dots area the local forest cover for each sampling site."}
 
 ggplot(env, aes(x=forest_site400, y=forest_land)) +
-  facet_grid(~matrix) +
+  facet_grid(~matrix, labeller = as_labeller(c(high_quality = "High-quality matrix", low_quality = "Low-quality matrix"))) +
   geom_point() +
   geom_line(aes(shape=landscape)) +
   xlab("% local forest cover (400 m)") + 
@@ -115,7 +122,7 @@ ggplot(env, aes(x=forest_site400, y=forest_land)) +
 
 # 2. Scale of effects for local forest cover
 
-We ran different models with each local forest cover variable and selected the scale of effect using AIC model selection (and the R^2^ of the models). The models follow the specification presented in the paper (_Community Modeling_ section), except that here we did not include trait variables, i.e. we only modeled the occurrence of species according to forest cover.
+We ran different models with each local forest cover variable and selected the scale of effect using AIC model selection and the R^2^ of the models. The models follow the specification presented in the paper (_Modeling_ section), except that here we did not include trait variables, i.e. we only modeled the occurrence of species according to forest cover.
 
 We used `lme4` package (@bates_fitting_2015) to perform a GLMM with binomial (proportion) distribution. An example of the code for each assemblage is as follows:
 
@@ -364,7 +371,7 @@ flow.gen <- rbind(pforest_site400[,2:3], pforest_site600[,2:3], pforest_site800[
          dataset="low.gen")
 ```
 
-In Figure \ref{fig:figpred}, we present the occurrence probability predicted for the models with different local forest cover scales for all the assemblages. Predictions were quite similar and decreased with forest cover for the specialists, especially in the low-quality matrix region, and increased or remained flat for the generalists.
+In Figure S2.\ref{fig:figpred}, we present the occurrence probability predicted for the models with different local forest cover scales for all the assemblages. Predictions were quite similar and decreased with forest cover for the specialists, especially in the low-quality matrix region, and increased or remained flat for the generalists.
 
 ```{r figpred, fig.cap="Predictions of the models with different local forest cover scales (lines) for specialists and generalists in both regions."}
 labs <- c(high = "High-quality matrix", low="Low-quality matrix",
@@ -384,9 +391,9 @@ rbind(fhigh.spe, flow.spe,fhigh.gen, flow.gen) %>%
 
 ## Residual correlations among species
 
-We evaluated the residual Kendall correlations among species for the 400 m models using the predictions for site:sp random effects (Observation Level Random Effect), following the code provided by @miller_functional_2018. Codes for the species names are presented in the dataset available.
+We evaluated the residuals by Kendall correlations among species and among sites for the 400 m models using the predictions for site:sp random effects (Observation Level Random Effect), following the code provided by @miller_functional_2018. Codes for the species names are presented in the dataset available.
 
-Below we show models residual correlation plots for the specialists in the high-quality matrix region. All the other assemblages presented similar results.
+Below we show models residual correlation plots for the specialists in the high-quality matrix landscape. All the other assemblages presented similar results.
 
 ```{r, fig.height=4}
 nsites = 40
@@ -626,7 +633,7 @@ save(mhigh.spe42, mlow.spe42, mhigh.gen42, mlow.gen42,
      file="models_outputs/models_landscape_cover.Rdata")
 ```
 
-Before analysing results, we evaluated possible colinearity between local and landscape forest cover using the Variance Inflation Factor with the code provided by John Lefcheck (https://jonlefcheck.net/2012/12/28/dealing-with-multicollinearity-using-variance-inflation-factors/). With VIF we found no evidence of collinearity between the forest cover scales (Table \ref{tab:vif}). 
+Before analysing results, we evaluated possible colinearity between local and landscape forest cover using the Variance Inflation Factor with the code provided by John Lefcheck (https://jonlefcheck.net/2012/12/28/dealing-with-multicollinearity-using-variance-inflation-factors/). With VIF we found no evidence of collinearity between the forest cover scales (Table S2.\ref{tab:vif}). 
 
 ```{r vif}
 varif <- rbind(vif.mer(mhigh.spe42),vif.mer(mlow.spe42),vif.mer(mhigh.gen42),
@@ -639,7 +646,7 @@ kable(varif, "latex", booktabs=T, caption= "Variance Inflation Factor index for 
   group_rows("Generalists", 3,4) 
 ```
 
-Predictions of the models are present in Figure \ref{fig:fig.pred42}. It is important to notice the differences in 20 and 40% landscape forest cover predictions for the specialists in the low-quality matrix.
+Predictions of the models are present in Figure S2.\ref{fig:figpred42}. It is important to notice the differences in 20 and 40% landscape forest cover predictions for the specialists in the low-quality matrix.
 
 ```{r}
 pforest_site400 <- data.frame(forest_site400 = seq(min(high.spe$forest_site400),
