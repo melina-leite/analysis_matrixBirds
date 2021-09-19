@@ -157,7 +157,7 @@ fig.forest <- fc %>%
        legend.position = "none",
        panel.background = element_rect(fill="#FAFAFA", color="#FAFAFA")
        ) +
-  xlab("Effect size") + ylab("Forest cover")+
+  xlab("Coefficient (slope)") + ylab("Forest cover")+
   ggtitle("Matrix quality")
 ```
 
@@ -186,7 +186,7 @@ fig.forest <- fc %>%
 ```
 
 ```{r, echo=F, results="hide"}
-jpeg("figures/forest_cover_effectsize2.jpg", width=16, height = 10, units="cm", res=150)
+jpeg("figures/forest_cover_coefs.jpg", width=16, height = 10, units="cm", res=150)
 fig.forest
 dev.off()
 ```
