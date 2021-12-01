@@ -8,7 +8,7 @@ The original dataset is available at the Dryad Digital Repository: http://dx.doi
 
 **Title:** Matrix quality determines the strength of habitat loss filtering on bird communities at landscape scales
 
-**Authors:** Melina de Souza Leite, Andrea Larissa Boesing, Jean Paul Metzger & Paulo Inácio Prado
+**Authors:** _Melina de Souza Leite_, Andrea Larissa Boesing, Jean Paul Metzger & Paulo Inácio Prado
 
 **Keywords**: environmental filter, ecological drift, functional traits, trait-environment relationship, community ecology, landscape structure.
 
@@ -18,4 +18,4 @@ The original dataset is available at the Dryad Digital Repository: http://dx.doi
 
 # Analysis
 
-To follow the analysis, please, run the .Rmd files in order from 0 to 5.
+To follow the analysis, please, run the .Rmd files in order from 0 to 5 OR see all the code and results in the .hmtl or .pdf rendered files with the same name.
