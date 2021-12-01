@@ -18,12 +18,12 @@ The original dataset is available at the Dryad Digital Repository: http://dx.doi
 
 # Analysis
 
-To follow the analysis, please, run the .hmtl rendered files from 0 to 4 OR open and run the .Rmd files with the same name in the **scripts** folder.
+To follow the analysis, please, open the .hmtl files from 0 to 4 in the main folder OR open and run the original .Rmd files in the **scripts** folder.
 
 
 # Suplementary manterial/information/appendices
 
-The supplementary material/appendices files that accompany the mansucript are in pdf form in the folder **appendices_suppInfo**. The pdfs are build from the script .Rmd files, except for Apppendix 1 which is a .docx file.
+The supplementary material/appendices files that accompany the mansucript are in pdf form in the folder **appendices_suppInfo**. The pdfs were built from the script .Rmd files, except for Apppendix 1 which is a .docx file.
 
 
 # renv environment
@@ -33,6 +33,5 @@ This repository uses [_renv_ package](https://rstudio.github.io/renv/) to improv
 
 # Acknoledgements
 
-I thank to the [**Peer Code Review Club**](https://github.com/SORTEE/peer-code-review-resources) from [SORTEE](https://www.sortee.org/) for reviewing the code and helping me in improving reproducitibilty of the analysis in this repository. 
-however, I'm the only resposible for the content of the repository, including mistakes.
+I thank to the [**Peer Code Review Club**](https://github.com/SORTEE/peer-code-review-resources) from [SORTEE](https://www.sortee.org/) for reviewing the code and helping me in improving reproducitibilty of the analysis in this repository.
 
