@@ -45,46 +45,64 @@ documentclass: article
 knitr::opts_chunk$set(
   echo = T, warning = F, fig.align = "center", message = F,
   error = F, cache = F, fig.pos="H")
-knitr::opts_knit$set(root.dir = "../")
+#knitr::opts_knit$set(root.dir = "../")
 
 library(knitr)
 library(tidyverse)
 library(janitor)
+library(here)
+library(magrittr)
 ```
 
-Processing the datasets to create a wide formating data for analysis, for each assemblage.
+Organization of the datasets for the environmental, species and site information.
+Processing and standardizing the data to create a wide formating data for analysis, for each bird assemblage (high and low-quality landscapes, and specialists and generalists).
+
+The resulting datasets will be used in all subsquent data exploration and analysis.
 
 ## Species X sites occurrence matrix
 
 ```{r}
-data <- read.csv("data/species_site_occ.csv", check.names=FALSE)
+here("data", "species_site_occ.csv")
+data <- read.csv(here("data", "species_site_occ.csv"), check.names=FALSE)
 ```
 
 Long format
 ```{r}
-data <- data %>% pivot_longer(cols = 3:182, names_to = "sp", values_to="occor")
+cols_to_choose <- names(data[, !names(data) %in% c('landscape', 'site')])
+data %<>% tidyr::pivot_longer(cols = cols_to_choose, 
+                              names_to = "sp", 
+                              values_to = "occor")
 str(data)
+## all but the first two - use the names
 ```
 
 ## Landscape and sites information
 
+Landuse types information for each landscape. This information is used to describe matrix quality (heterogeneity and contrast types) and to compare matrices among landscapes considered of low and high-quality for bird assemblages.
 ```{r}
-env <- read.csv("data/sites_information.csv")
+landuse <- read.csv(here("data", "landuse_landscapes_2km.csv"))
+str(landuse)
+```
+
+Environmental site information for forest cover (local at different buffer radius and landscape scale), and coordinates for the sites and the centroids of the landscapes.
+```{r}
+env <- read.csv(here("data", "sites_information.csv"))
 str(env)
 ```
 
 ## Species information
 
 ```{r}
-sp <- read.csv("data/species_information.csv")
+sp <- read.csv(here("data","species_information.csv"))
 str(sp)
 ```
 
 ## Mergin information
 
 ```{r}
-dataset <- data %>% left_join(sp[,3:11], "sp") %>% 
-  left_join(env[,],by=c("landscape", "site"))
+dataset <- data %>% 
+           left_join(sp[,3:11], "sp") %>% 
+           left_join(env[,],by=c("landscape", "site"))
 ```
 
 ## Creating assemblages datasets 
@@ -92,9 +110,10 @@ dataset <- data %>% left_join(sp[,3:11], "sp") %>%
 Cleaning information columns and standardazing continuous variables for modeling.
 
 ```{r}
+# use group_by in dataset to scale all the continuous variables - see if it is possible - it will save space OR make a function!
+
 high.spe <- dataset %>% filter(matrix=="high_quality",
                                habitat_specif=="specialist") %>%
-  
             select(landscape,site,sp,n.visit,occor,body_size,diet,nest,stratum,
                    frugivory,insectivory,lower_stratum,forest_land, 
                    forest_site400, forest_site600, forest_site800) %>%
@@ -184,6 +203,7 @@ low.gen <- dataset %>% filter(matrix=="low_quality",
 
 Selecting only the species that occur in the landscapes
 ```{r}
+# same comment as before
 sp.high.spe <- high.spe %>% group_by(sp) %>% summarise(n=sum(occor)) %>% 
   filter(n>0) %>% select(sp)
 high.spe <- high.spe %>% filter(sp %in% sp.high.spe$sp)
@@ -374,8 +394,8 @@ rbind(tab1,tab2,tab3) %>% rename(Traits = var, Specialists = spe, Generalists = 
 # Saving datasets
 
 ```{r}
-save(env, high.spe, high.gen,low.spe,low.gen, 
-     file="scripts/datasets.Rdata")
+save(landuse, env, high.spe, high.gen, low.spe, low.gen, 
+     file= here("data","datasets.Rdata"))
 ```
 
 

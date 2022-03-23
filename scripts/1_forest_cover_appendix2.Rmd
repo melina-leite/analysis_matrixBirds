@@ -1,5 +1,5 @@
 ---
-title: 'Appendix 2: Forest cover at local and landscape scale'
+title: 'Appendix 2: Landscapes Landuse and forest cover at local and landscape scale'
 author: "Melina Leite"
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
 bibliography: ../references/refs_appendix.bib
@@ -14,6 +14,8 @@ output:
     lightbox: true
     gallery: false
     fig_heigth: 20
+  pdf_document:
+    toc: no
 documentclass: article
 classoption: a4paper
 header-includes:
@@ -56,6 +58,8 @@ knitr::opts_chunk$set(
 knitr::opts_knit$set(root.dir = "../")
 
 library(knitr)
+library(here)
+library(magrittr)
 library(tidyverse); library(cowplot); library(patchwork)
 theme_set(theme_cowplot())
 library(lme4); library(bbmle)
@@ -63,10 +67,12 @@ library(corrplot)
 library(GGally)
 options(kableExtra.latex.load_packages = FALSE)
 library(kableExtra)
+library(vegan)
+library(FD)
 ```
 
 ```{r}
-load("scripts/datasets.Rdata") # datasets
+load(here("data","datasets.Rdata")) # datasets
 load("models_outputs/models_local_cover.Rdata") # models outputs
 load("models_outputs/models_landscape_cover.Rdata") # models outputs
 source("scripts/r2_auxiliary_function.R")
@@ -91,10 +97,115 @@ vif.mer <- function (fit) {
 }
 ```
 
-This appendix is a description of the forest cover variables at both local and landscape scales. We present the baseline models for the selection of the best scale for the local forest cover variable for each dataset. For the local scale, we measured the percentage of forest cover within buffers of 400, 600 and 800 m around each sampling site. For the landscape forest cover, we used the 2 km buffer around the landscape centroid.
+This appendix is a description of the landuse and matrix of the landscapes, togethe with a more specific description of forest cover variables at both local and landscape scales. We present the baseline models for the selection of the best scale for the local forest cover variable for each dataset. For the local scale, we measured the percentage of forest cover within buffers of 400, 600 and 800 m around each sampling site. For the landscape forest cover, we used the 2 km buffer around the landscape centroid.
 
 
-# 1. Relationships among forest cover variables
+# 1. Landuse and matrix description in landscapes
+
+
+```{r}
+lu <- landuse %>%
+  mutate(landscape = fct_reorder(landscape,forest,max)) %>%
+  pivot_longer(3:10, names_to = "landuse", values_to = "value") %>%
+  mutate(landuse = fct_relevel(landuse, 
+                               "forest", "pasture", "coffee", "eucalyptus",
+                               "sugarcane", "urban", "water","other")) 
+
+```
+
+Percentage of each landuse type per landscape
+```{r, fig.height=8, fig.width=6}
+# label colors for each landuse
+cores <- c("#549E3E", "#FDF5B5", "#D97853", # for pas coffee
+           "#BCDE93", "#FFBBFF", "#BDB39A", # euc sugar water
+          "#7AC5CD", "#8B7D6B") # water other
+lu %>% mutate(landuse = fct_rev(landuse)) %>%
+ggplot(aes(y=landscape, x=value, fill=landuse)) +
+  geom_col() +
+  facet_grid(matrix~., scales="free_y",space='free_y', switch="y",
+             labeller = as_labeller(c("high-quality" = "high-quality landscapes",
+                                      "low-quality" = "Low-quality landscapes"))) +
+  scale_fill_manual(values=rev(cores)) +
+  theme(legend.position = "bottom",
+        strip.placement= "outside")+
+  xlab("Landuse (%)") + ylab("") + 
+  ggtitle("Landuse composition")
+```
+
+Proportions of landuse types among high- and low-quality landscapes
+```{r}
+ggplot(lu, aes(x=matrix, y=value,fill=landuse, col=landuse)) +
+  facet_wrap(~landuse, ncol=4) +
+   geom_violin(fill="white")+
+  geom_dotplot(stackdir = "center", dotsize=1.5,
+               binaxis = "y") +
+  stat_summary(fun=median, size=0.1, fatten=5, col="black",
+                         geom="crossbar", width=0.5)+
+  scale_fill_manual(values=cores )+
+  scale_color_manual(values=cores ) +
+  theme(legend.position = "none") +
+  xlab("Matrix quality") + ylab("Landuse (%)")
+```
+
+Summary table
+```{r}
+lu %>% group_by(landuse, matrix) %>% summarise(min = min(value),
+                                               mean=mean(value),
+                                               sd = sd(value),                                                                             median=median(value),
+                                               max = max(value)) %>% 
+  kable(digits = 1)
+```
+
+## Principal Coordinate Analysis
+
+To compare landuse matrices in both high- and low-quality landscapes, we performed a Principal Coordiante analysis with the proportions of each landuse type. 
+- PCoA is more advisable given the nature of the data (sum up 100%, compositional data), we used gower distance tranformation to create a distance matrix among landscapes
+
+```{r, fig.width=6, fig.height=6}
+cor <- as.numeric(as.factor(landuse$matrix)) # landuse colors
+
+pcoa <- capscale (landuse[,3:10]~1, dist= "gower", scaling = 1)
+plot(pcoa, main = 'PCoA (MDS)',  display="si", scaling=2, type="points", 
+     ylim=c(-1.1,1),
+     col=cor, pch=16)
+text (pcoa, display = 'sp', col="blue", scaling=3)
+points (pcoa, display = 'si', col=cor, pch=16,scaling=2, cex=1.2)
+```
+
+
+## Landuse heterogeneity - diversity index
+
+Comparing matrix 
+
+```{r}
+landuse$simp.div <- diversity(landuse[,3:10], index='simpson')
+landuse$shan.div <- diversity(landuse[,3:10], index='shannon')
+
+ggplot(landuse, aes(x=matrix, y=simp.div)) +  geom_boxplot()+
+  geom_dotplot(stackdir = "center", dotsize=1,binaxis = "y") +
+ggplot(landuse, aes(x=matrix, y=shan.div)) +   geom_boxplot() +
+  geom_dotplot(stackdir = "center", dotsize=1, binaxis = "y")
+```
+
+Testing differences in diversity indexes between matrix quality
+```{r}
+summary(lm(simp.div ~matrix, data=landuse))
+summary(lm(shan.div ~matrix, data=landuse))
+```
+
+## Correlation among proportions of landuse types
+
+```{r}
+ggpairs(landuse, columns = 3:7, ggplot2::aes(colour=matrix),
+        lower = list(continuous = "smooth"))
+```
+
+
+
+
+
+
+# 2. Relationships among forest cover variables
 
 We calculated Pearson correlation coefficients for forest cover variables in each matrix quality region (Figure S2.\ref{fig:fig1}). Also, we ploted the range of local forest cover (400 m) within the landscapes to see how local forest cover varies among landscapes in both regions (Figure S2.\ref{fig:fig2}).
 
@@ -128,7 +239,7 @@ ggplot(env, aes(x=forest_site400, y=forest_land)) +
   ylim(5,60)
 ```
 
-# 2. Scale of effects for local forest cover
+# 3. Scale of effects for local forest cover
 
 We ran different models with each local forest cover variable and selected the scale of effect using AIC model selection and the R^2^ of the models. The models follow the specification presented in the paper (_Modeling_ section), except that here we did not include trait variables, i.e. we only modeled the occurrence of species according to forest cover.
 
@@ -592,7 +703,7 @@ mtext("Sites", side=3, cex=1.2)
 
 -->
 
-# 3. Including landscape forest cover
+# 4. Including landscape forest cover
 
 After selecting the local forest cover of 400 m radius buffer around each site for all datasets, we included the landscape forest cover (2 km radius buffer around the centroid of the landscape) in the model. 
 

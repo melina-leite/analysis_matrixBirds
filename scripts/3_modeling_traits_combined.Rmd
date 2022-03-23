@@ -59,7 +59,7 @@ mhigh.spe <- glmer(cbind(occor, n.visit-occor) ~
                     (1|landscape:sp) + (1|site:sp) + 
                     (lbody_size + nest + diet + lower_stratum|landscape) +
                     (lbody_size + nest + diet + lower_stratum|site),
-                    family=binomial, data=high.spe,
+                    family=binomial, data = high.spe,
                     nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
                                     optCtrl = list(maxfun = 500000)))
 
