@@ -1,5 +1,5 @@
 ---
-title: 'Appendix 2: Landscapes Landuse and forest cover at local and landscape scale'
+title: 'Appendix 2: Landscapes land use and forest cover'
 author: "Melina Leite"
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
 bibliography: ../references/refs_appendix.bib
@@ -7,6 +7,9 @@ csl: ../references/references-style.csl
 knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_dir = "../") })
 output:
+  pdf_document:
+    highlight: tango
+    toc: no
   rmdformats::readthedown:
     highlight: kate
     self_contained: true
@@ -14,8 +17,6 @@ output:
     lightbox: true
     gallery: false
     fig_heigth: 20
-  pdf_document:
-    toc: no
 documentclass: article
 classoption: a4paper
 header-includes:
@@ -51,9 +52,9 @@ header-includes:
 \fontsize{11}{11}
 \selectfont
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE}  
 knitr::opts_chunk$set(
-  echo = T, warning = F, fig.align = "center", message = F,
+  echo = F, warning = F, fig.align = "center", message = F,
   error = T, cache = F, fig.pos="H")
 knitr::opts_knit$set(root.dir = "../")
 
@@ -71,11 +72,11 @@ library(vegan)
 library(FD)
 ```
 
-```{r}
+```{r loading}
 load(here("data","datasets.Rdata")) # datasets
-load("models_outputs/models_local_cover.Rdata") # models outputs
-load("models_outputs/models_landscape_cover.Rdata") # models outputs
-source("scripts/r2_auxiliary_function.R")
+load(here("models_outputs","models_local_cover.Rdata")) # models outputs
+load(here("models_outputs","models_landscape_cover.Rdata")) # models outputs
+source(here("scripts","r2_auxiliary_function.R"))
 ```
 
 ```{r}
@@ -97,24 +98,31 @@ vif.mer <- function (fit) {
 }
 ```
 
-This appendix is a description of the landuse and matrix of the landscapes, togethe with a more specific description of forest cover variables at both local and landscape scales. We present the baseline models for the selection of the best scale for the local forest cover variable for each dataset. For the local scale, we measured the percentage of forest cover within buffers of 400, 600 and 800 m around each sampling site. For the landscape forest cover, we used the 2 km buffer around the landscape centroid.
+This appendix is a description of the landscapes land uses, togethe with a more specific description of forest cover variables at both local and landscape scales. We present the baseline models for the selection of the best scale for the local forest cover variable for each dataset. For the local scale, we measured the percentage of forest cover within buffers of 400, 600 and 800 m around each sampling site. For the landscape forest cover, we used the 2 km buffer around the landscape centroid.
 
 
-# 1. Landuse and matrix description in landscapes
+# 1. Land use composition in landscapes
 
+We show in Figure S2.\ref{fig:fig_lucomposition} the composition of the main land use types per landscapes, and in Figure  S2.\ref{fig:fig_luboxplot} and Table  S2.\ref{tab:summary_tab} the comparisons of land use types among the high- and low-quality regions. We tested for differences in Shannon and Simpson diversity indexes using the percentage of land use types of the landscapes (Figure S2.\ref{fig:fig_index}). We found for both diversity indices larger diversity of land use types in high-quality matrix landscapes, i.e. larger heterogeneity of matrix types in these landscapes.
 
-```{r}
-lu <- landuse %>%
+We used Principal Coordinate Analysis (PCoA) to show the clear separation in landscape land uses from both regions based on land use composition (Figure  S2.\ref{fig:fig_pcoa}). PCoA is more adequate than PCA given the nature of the data (sum up 100%, compositional data). We used gower distance tranformation to create a distance matrix among landscapes. Among the main land uses, landscapes in the low-quality region are more associated with larger proportions of pasture, eucalyptus plantations and urban areas to a lower extent, while landscapes in the high-quality region are more associated with larger proportions of coffee, sugar cane and lower proportions of pasture to a lower extend. The PCoA analysis also shows that forest cover variation is similar between regions and are not relevant in separating landscapes from both regions,i.e. the amount of forest cover among landscapes follows a similar gradient in both regions.
+
+Although landscapes in the high-quality matrix region do have some proportion of pasture (mean 35.5% ± 10.2), this remains lower than the proportion of pasture in the low-quality matrix region (mean 46.9% ± 11.1). And, as it can be seen in PCoA results (Figure  S2.\ref{fig:fig_pcoa}), high-quality matrix landscapes are more negatively related to proportion of pasture when compared together with low-quality matrix landscapes.
+
+Eucalyptus tree plantations represent the only arboreal matrix element in all 13 low-quality matrix landscapes and compose an average of 18% ± 8.7 of matrix cover, while high-quality landscapes have on average 2% ± 3.2 of eucalyptus in matrix cover but it is still present in 7 of the 10 landscapes. Although eucalyptus trees may, in principle, provide less edge effects as pastures and coffee plantations, it doesn’t necessarily mean it is a high-quality matrix for birds.  (@barros_matrix_2019) concluded that eucalyptus plantations at the same region of our low-quality matrix landscapes were matrices of lower quality because of intensive management including biocidal suppression of native understory vegetation. Eucalyptus plantations are also less perennial elements in the landscape with cycles of clearcut around 6-8 years (@rodrigues_eucalyptus_2019). Thus, in comparison with coffee plantations, which has evidence of use and spillover movements from forest to them (@boesing_biodiversity_2018), eucalyptus plantations may not be necessarily equally high-quality matrices as initially supposed. On the contrary, they were found less beneficial to birds than expected (@barros_matrix_2019).
+
+Also note the high negative correlation among percentage of pasture and forest cover (Figure  S2.\ref{fig:fig_corr}).
+
+```{r lu}
+lu <- landscape %>%
   mutate(landscape = fct_reorder(landscape,forest,max)) %>%
-  pivot_longer(3:10, names_to = "landuse", values_to = "value") %>%
+  pivot_longer(forest:other, names_to = "landuse", values_to = "value") %>%
   mutate(landuse = fct_relevel(landuse, 
                                "forest", "pasture", "coffee", "eucalyptus",
                                "sugarcane", "urban", "water","other")) 
-
 ```
 
-Percentage of each landuse type per landscape
-```{r, fig.height=8, fig.width=6}
+```{r fig_lucomposition, fig.height=6, fig.width=6, fig.cap="Percentage of the 8 main land use types per landscape in each region."}
 # label colors for each landuse
 cores <- c("#549E3E", "#FDF5B5", "#D97853", # for pas coffee
            "#BCDE93", "#FFBBFF", "#BDB39A", # euc sugar water
@@ -123,17 +131,16 @@ lu %>% mutate(landuse = fct_rev(landuse)) %>%
 ggplot(aes(y=landscape, x=value, fill=landuse)) +
   geom_col() +
   facet_grid(matrix~., scales="free_y",space='free_y', switch="y",
-             labeller = as_labeller(c("high-quality" = "high-quality landscapes",
-                                      "low-quality" = "Low-quality landscapes"))) +
-  scale_fill_manual(values=rev(cores)) +
+             labeller = as_labeller(c("high_quality" = "high-quality landscapes",
+                                      "low_quality" = "Low-quality landscapes"))) +
+  scale_fill_manual(name="", values=rev(cores)) +
   theme(legend.position = "bottom",
         strip.placement= "outside")+
   xlab("Landuse (%)") + ylab("") + 
   ggtitle("Landuse composition")
 ```
 
-Proportions of landuse types among high- and low-quality landscapes
-```{r}
+```{r fig_luboxplot, fig.height=4, fig.cap="Proportions of landuse types among high- and low-quality landscapes"}
 ggplot(lu, aes(x=matrix, y=value,fill=landuse, col=landuse)) +
   facet_wrap(~landuse, ncol=4) +
    geom_violin(fill="white")+
@@ -143,28 +150,48 @@ ggplot(lu, aes(x=matrix, y=value,fill=landuse, col=landuse)) +
                          geom="crossbar", width=0.5)+
   scale_fill_manual(values=cores )+
   scale_color_manual(values=cores ) +
+  scale_x_discrete(labels=c("High", "Low")) +
   theme(legend.position = "none") +
   xlab("Matrix quality") + ylab("Landuse (%)")
 ```
 
-Summary table
-```{r}
-lu %>% group_by(landuse, matrix) %>% summarise(min = min(value),
+```{r summary_tab}
+lu %>% group_by(matrix,landuse) %>% summarise(min = min(value),
                                                mean=mean(value),
                                                sd = sd(value),                                                                             median=median(value),
                                                max = max(value)) %>% 
-  kable(digits = 1)
+  kable(digits = 1, caption = "Summary table of the land use percentages for landscapes in both regions of high- and low-quality matrix landscapes.")
 ```
 
-## Principal Coordinate Analysis
+```{r fig_index, fig.height=3, fig.width=6, fig.cap="Simpson and Shannon diversity indexes for land uses in landscapes from both high- and low-quality matrix regions."}
+landscape$simp.div <- diversity(landscape[,5:12], index='simpson')
+landscape$shan.div <- diversity(landscape[,5:11], index='shannon')
 
-To compare landuse matrices in both high- and low-quality landscapes, we performed a Principal Coordiante analysis with the proportions of each landuse type. 
-- PCoA is more advisable given the nature of the data (sum up 100%, compositional data), we used gower distance tranformation to create a distance matrix among landscapes
+#Testing differences in diversity indexes between matrix quality
+simp.test <- broom::glance(lm(simp.div ~matrix, data=landscape))
+sha.test <- broom::glance(lm(shan.div ~matrix, data=landscape))
+#kable(bind_rows(list(Simpson = simp.test,Shannon= sha.test), .id="Index"), digits = 2)
 
-```{r, fig.width=6, fig.height=6}
-cor <- as.numeric(as.factor(landuse$matrix)) # landuse colors
+ggplot(landscape, aes(x=matrix, y=simp.div)) +  geom_boxplot()+
+  geom_dotplot(stackdir = "center", dotsize=1,binaxis = "y") +
+  ylab("Simpson diversity")+
+  annotate("text", x=2,  y=0.76, 
+           label=paste0("R-squared = ", round(simp.test$adj.r.squared[1],2)))+
+    annotate("text", x=2,  y=0.743, 
+           label=paste0("P-value = ", round(simp.test$p.value[1],2)))+
+ggplot(landscape, aes(x=matrix, y=shan.div)) +   geom_boxplot() +
+  geom_dotplot(stackdir = "center", dotsize=1, binaxis = "y") +
+  ylab("Shannon diversity")+
+  annotate("text", x=2,  y=1.6, 
+           label=paste0("R-squared = ", round(sha.test$adj.r.squared[1],2)))+
+    annotate("text", x=2,  y=1.56, 
+           label=paste0("P-value = ", round(sha.test$p.value[1],2)))
+```
 
-pcoa <- capscale (landuse[,3:10]~1, dist= "gower", scaling = 1)
+```{r fig_pcoa, fig.width=6, fig.height=6, fig.cap="First 2 axes of the PCoA results for the composition of land use types among landscapes from the high-quality matrix (black dots) and low-quality matrix (red dots) regions." }
+cor <- as.numeric(as.factor(landscape$matrix)) # landuse colors
+
+pcoa <- capscale (landscape[,5:12]~1, dist= "gower", scaling = 1)
 plot(pcoa, main = 'PCoA (MDS)',  display="si", scaling=2, type="points", 
      ylim=c(-1.1,1),
      col=cor, pch=16)
@@ -172,51 +199,26 @@ text (pcoa, display = 'sp', col="blue", scaling=3)
 points (pcoa, display = 'si', col=cor, pch=16,scaling=2, cex=1.2)
 ```
 
-
-## Landuse heterogeneity - diversity index
-
-Comparing matrix 
-
-```{r}
-landuse$simp.div <- diversity(landuse[,3:10], index='simpson')
-landuse$shan.div <- diversity(landuse[,3:10], index='shannon')
-
-ggplot(landuse, aes(x=matrix, y=simp.div)) +  geom_boxplot()+
-  geom_dotplot(stackdir = "center", dotsize=1,binaxis = "y") +
-ggplot(landuse, aes(x=matrix, y=shan.div)) +   geom_boxplot() +
-  geom_dotplot(stackdir = "center", dotsize=1, binaxis = "y")
-```
-
-Testing differences in diversity indexes between matrix quality
-```{r}
-summary(lm(simp.div ~matrix, data=landuse))
-summary(lm(shan.div ~matrix, data=landuse))
-```
-
-## Correlation among proportions of landuse types
-
-```{r}
-ggpairs(landuse, columns = 3:7, ggplot2::aes(colour=matrix),
+```{r fig_corr, fig.cap="Correlation among percentages of landuse types.", fig.height=6, fig.width=10}
+ggpairs(landscape, columns = 5:9, ggplot2::aes(colour=matrix),
         lower = list(continuous = "smooth"))
 ```
 
 
-
-
-
-
 # 2. Relationships among forest cover variables
 
-We calculated Pearson correlation coefficients for forest cover variables in each matrix quality region (Figure S2.\ref{fig:fig1}). Also, we ploted the range of local forest cover (400 m) within the landscapes to see how local forest cover varies among landscapes in both regions (Figure S2.\ref{fig:fig2}).
+We calculated Pearson correlation coefficients for forest cover variables in each matrix quality region (Figure S2.\ref{fig:fig_cor}). Also, we ploted the range of local forest cover (400 m) within the landscapes to see how local forest cover varies among landscapes in both regions (Figure S2.\ref{fig:fig_range}).
 
-```{r fig1, fig.cap="Correlations among forest cover variables in the high-quality (left) and low-quality matrix (right) landscapes."}
+```{r fig_cor, fig.cap="Correlations among forest cover variables in the high-quality (left) and low-quality matrix (right) landscapes."}
 
-high.cor <- env[which(env$matrix == "high_quality"), c(10,11,12,9)]
-colnames(high.cor) <- c("Local 400m", "Local 600m", 
+forest <- site %>% left_join(landscape[,c(2,5)], "landscape") %>%
+  select(matrix,landscape,site,forest_site400, forest_site600, forest_site800,
+         forest)
+colnames(forest)[4:7] <- c("Local 400m", "Local 600m", 
                       "Local 800m","Landscape 2km")
-low.cor <- env[which(env$matrix == "low_quality"), c(10,11,12,9)]
-colnames(low.cor) <- c("Local 400m", "Local 600m", 
-                      "Local 800m","Landscape 2km")
+
+high.cor <- forest[which(forest$matrix == "high_quality"), c(4:7)]
+low.cor <- forest[which(forest$matrix == "low_quality"), c(4:7)]
 
 par(mfrow=c(1,2))
 corrplot(cor(high.cor),method="number",type="lower", diag=F, 
@@ -228,9 +230,9 @@ corrplot(cor(low.cor),method="number",type="lower", diag=F,
 mtext("Low-quality matrix", cex=1.2)
 ```
 
-```{r fig2, warning=F, fig.height=4, fig.cap="Range of local forest cover (buffer 400 m) within each landscape (buffer 2 km) for both landscapes with different matrix quality. Each line represent a landscape and the dots area the local forest cover for each sampling site."}
+```{r fig_range, warning=F, fig.height=4, fig.cap="Range of local forest cover (buffer 400 m) within each landscape (buffer 2 km) for both landscapes with different matrix quality. Each line represent a landscape and the dots area the local forest cover for each sampling site."}
 
-ggplot(env, aes(x=forest_site400, y=forest_land)) +
+ggplot(forest, aes(x=`Local 400m`, y= `Landscape 2km`)) +
   facet_grid(~matrix, labeller = as_labeller(c(high_quality = "High-quality matrix", low_quality = "Low-quality matrix"))) +
   geom_point() +
   geom_line(aes(shape=landscape)) +
@@ -238,6 +240,7 @@ ggplot(env, aes(x=forest_site400, y=forest_land)) +
   ylab("% landscape forest cover (2 km)") +
   ylim(5,60)
 ```
+
 
 # 3. Scale of effects for local forest cover
 

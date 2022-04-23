@@ -1,7 +1,7 @@
 Data structure and metadata:
 
 Files
-- species_site_occurrence.csv
+- species_site_occ.csv
 
 Bird occurrence (0 to 4 detections) of 180 species in 92 sites, 23 landscapes (4 sites per landscape).
 
@@ -10,22 +10,44 @@ Sites and landscape code follows the columns "site" and "landscape", respectivel
 
 - sites_information.csv
 
-Landscape and site information:
+Site information:
 
 matrix: matrix quality classification, high_quality and low_quality
 landscape: landscape code
 site: site code
-lat_land: latitude in decimal degree for the centroid of the landscape, coordinate system WGS84 
-lon_land: longitude in decimal degree for the centroid of the landscape, coordinate system WGS84
-lat_site: site latitude in decimal degree, coordinate system WGS84 
-lon_site: site longitude in decimal degree, coordinate system WGS84
-n.visit; number of visits in each site, there is only one site with less than 4 visits (3,  "215.P35")
-forest_land: landscape forest cover from a circular buffer of 2km around the centroid of the landscape.
-forest_site400: local forest cover from a circular buffer of 400m around site location.
-forest_site600: local forest cover from a circular buffer of 600m around site location.
-forest_site800: local forest cover from a circular buffer of 800m around site location.
+latitude: site latitude in decimal degree, coordinate system WGS84 
+longitude: site longitude in decimal degree, coordinate system WGS84
+n.visit: number of visits in each site, there is only one site with less than 4 visits (3,  "215.P35")
+forest_site400: local forest cover from a circular buffer of 400m around site.
+forest_site600: local forest cover from a circular buffer of 600m around site.
+forest_site800: local forest cover from a circular buffer of 800m around site.
+
+- landscapes_information.csv
+
+Land uses for the landscapes, buffer 2km around the centroid of the landscape.
+
+
+matrix: matrix quality classification, high_quality and low_quality
+landscape: landscape code 
+latitude: latitude in decimal degree for the centroid of the landscape, coordinate system WGS84 
+longitude: longitude in decimal degree for the centroid of the landscape, coordinate system WGS84
+
+Land use covers in percentage of area from a circular buffer of 2 km around the centroid of the landscape for 8 land use types:
+
+forest
+pasture
+coffee
+eucalyptus
+sugarcane
+urban
+Water
+other
+
+
 
 - species_information.csv
+
+For the sources of information on traits, please, see references in Appendix 2.
 
 Species names and trait information:
 
@@ -40,6 +62,7 @@ stratum: main foraging stratum
 frugivory: percentage of fruits in diet
 insectivory: percentage of insects in diet
 lower_stratum: percentage of use of lower foraging stratum
+Handwing: Hand-wing index 
 
 
 

@@ -1,0 +1,562 @@
+---
+title: "Appendix 4: Robustness analysis with species that occur at both high and low-quality landscapes"
+author: "Melina Leite"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../") })
+output:
+  pdf_document:
+      highlight: zenburn
+      toc: no
+  rmdformats::readthedown:
+      highlight: kate
+      self_contained: true
+      thumbnails: false
+      lightbox: true
+      gallery: false
+      fig_heigth: 20
+documentclass: article
+classoption: a4paper
+header-includes:
+    - \renewcommand{\figurename}{Figure S3.}
+    - \makeatletter
+    - \def\fnum@figure{\figurename\thefigure}
+    - \makeatother
+    - \renewcommand{\tablename}{Table S3.}
+    - \makeatletter
+    - \def\fnum@table{\tablename\thetable}
+    - \makeatother
+    - \usepackage{graphicx}
+    - \usepackage{float}
+    - \usepackage{setspace}\doublespacing
+    - \setlength{\parindent}{4em}
+    - \usepackage{indentfirst}
+    - \usepackage{booktabs}
+    - \usepackage{longtable}
+    - \usepackage{array}
+    - \usepackage{multirow}
+    #- \usepackage[table]{xcolor}
+    - \usepackage{colortbl}
+    - \usepackage{pdflscape}
+    - \usepackage{tabu}
+    - \usepackage{threeparttable}
+    - \usepackage{threeparttablex}
+    - \usepackage[normalem]{ulem}
+    - \usepackage{makecell}
+    - \usepackage{placeins}
+    - \usepackage[margin=0.8in]{geometry}
+---
+
+\fontsize{11}{11}
+\selectfont
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = F, warning = F, fig.align = "center", message = F,
+  error = F, cache = F, fig.pos="H")
+knitr::opts_knit$set(root.dir = "../")
+
+library(knitr); library(here)
+library(tidyverse); library(cowplot); library(patchwork); library(ggrepel)
+library(lme4); library(bbmle); library(broom.mixed)
+theme_set(theme_cowplot())
+```
+
+```{r}
+#Loading auxiliary function for R2 calculations
+source(here("scripts", "r2_auxiliary_function.R"))
+```
+
+
+```{r}
+#Loading data
+load(here("data","datasets.Rdata"))
+load(here("models_outputs","models_combined_sameSpecies.Rdata")) # saved models results sameSpecies data
+load(here("models_outputs","models_combined.Rdata")) # saved models results original data
+```
+
+Given that bird species pool are slightly different in both regions (see Appendix 1), the results we found comparing both high- and low-quality landscapes could be confounded by groups os species that respond differently but doesn't occur at both regions. In order to check for the robustness of our results, we performed separate analysis with only those species that occur in both regions, **57 forest specialists** and **64 forest generalists**, and compared them with the results presented in the main text with all species.
+
+The analyses were done with the combined trait models, the same presented at Figure 2 and 3 in the main text.
+
+We found that even with the same groups of species analyzed, we get very similar results for the differences between high- and low-quality matrix landscapes.
+
+
+
+# 1. Datasets
+
+Separating only species that occur at both regions.
+
+```{r}
+both.gen <- as.data.frame(table(c(unique(high.gen$sp), 
+                                  unique(low.gen$sp)))) %>%
+  filter(Freq>1) %>% 
+  mutate(Var1 = as.character(Var1)) %>%
+  pull(Var1)
+both.spe <- as.data.frame(table(c(unique(high.spe$sp), 
+                                  unique(low.spe$sp)))) %>%
+  filter(Freq>1) %>% 
+  mutate(Var1 = as.character(Var1)) %>%
+  pull(Var1)
+
+high.speS <- high.spe %>% filter(sp %in% both.spe)
+low.speS  <- low.spe %>% filter(sp %in% both.spe)
+high.genS <- high.gen %>% filter(sp %in% both.gen)
+low.genS <- low.gen %>% filter(sp %in% both.gen)
+
+data.frame(assemblage = c("High-quality specialists",
+                          "Low-quality specialists",
+                          "High-quality generalists",
+                          "Low-quality generalists"),
+           N_of_species =  c(length(unique(high.speS$sp)),
+                            length(unique(low.speS$sp)),
+                            length(unique(high.genS$sp)),
+                            length(unique(low.genS$sp)))) %>%
+  kable(caption="Checking the number of species in all 4 assemblages datasets.")
+```
+
+```{r, eval=F}
+#Combined traits models
+mhigh.speS <- glmer(cbind(occor, n.visit-occor) ~  
+                    forest_site400*lbody_size + 
+                    forest_site400*nest +
+                    forest_site400*diet + 
+                    forest_site400*lower_stratum +
+                    forest_land*lbody_size + 
+                    forest_land*nest + 
+                    forest_land*diet +
+                    forest_land*lower_stratum + 
+                    (forest_site400 + forest_land|sp) + 
+                    (1|landscape:sp) + (1|site:sp) + 
+                    (lbody_size + nest + diet + lower_stratum|landscape) +
+                    (lbody_size + nest + diet + lower_stratum|site),
+                    family=binomial, data = high.speS,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 500000)))
+
+
+mlow.speS <- glmer(cbind(occor, n.visit-occor) ~  
+                    forest_site400*lbody_size + 
+                    forest_site400*nest +
+                    forest_site400*diet + 
+                    forest_site400*lower_stratum +
+                    forest_land*lbody_size + 
+                    forest_land*nest + 
+                    forest_land*diet +
+                    forest_land*lower_stratum + 
+                    (forest_site400 + forest_land|sp) + 
+                    (1|landscape:sp) + (1|site:sp) + 
+                    (lbody_size + nest + diet + lower_stratum|landscape) +
+                    (lbody_size + nest + diet + lower_stratum|site),
+                    family=binomial, data=low.speS,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 500000)))
+
+
+mhigh.genS <- glmer(cbind(occor, n.visit-occor) ~  
+                    forest_site400*lbody_size + 
+                    forest_site400*nest +
+                    forest_site400*diet + 
+                    forest_site400*lower_stratum +
+                    forest_land*lbody_size + 
+                    forest_land*nest + 
+                    forest_land*diet +
+                    forest_land*lower_stratum + 
+                    (forest_site400 + forest_land|sp) + 
+                    (1|landscape:sp) + (1|site:sp) + 
+                    (lbody_size + nest + diet + lower_stratum|landscape) +
+                    (lbody_size + nest + diet + lower_stratum|site),
+                    family=binomial, data=high.genS,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 500000)))
+
+
+mlow.genS <- glmer(cbind(occor, n.visit-occor) ~  
+                    forest_site400*lbody_size + 
+                    forest_site400*nest +
+                    forest_site400*diet + 
+                    forest_site400*lower_stratum +
+                    forest_land*lbody_size + 
+                    forest_land*nest + 
+                    forest_land*diet +
+                    forest_land*lower_stratum + 
+                    (forest_site400 + forest_land|sp) + 
+                    (1|landscape:sp) + (1|site:sp) + 
+                    (lbody_size + nest + diet + lower_stratum|landscape) +
+                    (lbody_size + nest + diet + lower_stratum|site),
+                    family=binomial, data=low.genS,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 500000)))
+save(mhigh.genS, mhigh.speS, mlow.genS, mlow.speS,
+     file= "models_outputs/models_combined_sameSpecies.Rdata")
+```
+
+# 2.  Local and landscape forest cover effects
+
+Comparing effect sizes and 95% IC for fixed effects forest cover a local and landscape scale for each dataset: the original and the subsets of the same species (\ref{fig:fig_eff}). We see that estimates almost didn't change with the dataset. 
+
+```{r}
+# original results
+fhigh.spe <- tidy(mhigh.spe, effects = "fixed") %>% select(-effect)
+fhigh.gen <- tidy(mhigh.gen, effects = "fixed") %>% select(-effect)
+flow.spe  <- tidy(mlow.spe, effects = "fixed") %>% select(-effect)
+flow.gen  <- tidy(mlow.gen, effects = "fixed") %>% select(-effect)
+
+# only same species
+fhigh.speS <- tidy(mhigh.speS, effects = "fixed") %>% select(-effect)
+fhigh.genS <- tidy(mhigh.genS, effects = "fixed") %>% select(-effect)
+flow.speS  <- tidy(mlow.speS, effects = "fixed") %>% select(-effect)
+flow.genS  <- tidy(mlow.genS, effects = "fixed") %>% select(-effect)
+
+fc <- bind_rows(list(High.Specialists=fhigh.spe, 
+                     Low.Specialists=flow.spe, 
+                     High.Generalists=fhigh.gen,
+                     Low.Generalists =flow.gen), .id= "model") %>%
+  separate(model, c("matrix", "habitat"), remove = F) %>%
+  filter(term %in% c("forest_land", "forest_site400")) %>%
+  arrange(habitat, matrix,term) %>%
+  mutate(iclow = estimate - 1.96*std.error,
+         icup = estimate + 1.96*std.error, 
+         habitat = fct_relevel(habitat, "Specialists", "Generalists"),
+         term = fct_recode(term, Landscape = "forest_land", Local = "forest_site400")) %>%
+  mutate(term = fct_relevel(term, "Landscape", "Local"),
+         matrix = fct_relevel(matrix, "Low", "High"))
+
+fcS <- bind_rows(list(High.Specialists=fhigh.speS, 
+                     Low.Specialists=flow.speS, 
+                     High.Generalists=fhigh.genS,
+                     Low.Generalists =flow.genS), .id= "model") %>%
+  separate(model, c("matrix", "habitat"), remove = F) %>%
+  filter(term %in% c("forest_land", "forest_site400")) %>%
+  arrange(habitat, matrix,term) %>%
+  mutate(iclow = estimate - 1.96*std.error,
+         icup = estimate + 1.96*std.error, 
+         habitat = fct_relevel(habitat, "Specialists", "Generalists"),
+         term = fct_recode(term, Landscape = "forest_land", Local = "forest_site400")) %>%
+  mutate(term = fct_relevel(term, "Landscape", "Local"),
+         matrix = fct_relevel(matrix, "Low", "High"))
+
+dat <- bind_rows(list(original =fc, sameSP = fcS), .id="dataset")
+```
+
+
+```{r fig_eff, echo=F, fig.cap = "Comparing effect sizes (and 95 percent confidence intervals) for forest cover at local and landscape scale for both datasets: original with all species (triangles and continuous lines) and the subset of species that occur at both regions (circles and dashed lines)."}
+fig.forest <- dat %>%
+  ggplot(aes(x=estimate, y=term, col=term, linetype=dataset, shape=dataset)) + 
+  geom_point(size=3, position = position_dodge(width=0.8), guide="none") +
+  geom_errorbarh(aes(xmin=iclow, xmax=icup), height=0, size=1,
+                 position = position_dodge(width=0.8)) +
+  facet_grid(cols= vars(matrix), rows=vars(habitat)) +
+  geom_vline(xintercept = 0, linetype="dashed", col="grey") +
+  scale_color_manual(name="  Forest \n  cover ", guide="none",
+                     values=c( "yellow4", "turquoise4")) +
+  scale_shape(guide="none")+
+ theme(text = element_text(size=12),
+        axis.text = element_text(size=12),
+        strip.text.x = element_text(size=12, margin=margin(t=2,b=3)),
+        strip.text.y = element_text(size=12, margin=margin(r=2,l=3)),
+       #legend.position = c(0.89, 0.2),
+       plot.title = element_text(hjust = 0.5),
+       legend.position = "right",
+       panel.background = element_rect(fill="#FAFAFA", color="#FAFAFA")
+       ) +
+  xlab("Coefficient (slope)") + ylab("Forest cover")+
+  ggtitle("Matrix quality")
+fig.forest
+```
+
+
+```{r, echo=F, results="hide"}
+jpeg(here("figures","forest_cover_coefs-sameSP.jpg"), width=16, height = 10, units="cm", res=150)
+fig.forest
+dev.off()
+```
+
+
+# 3. R^2^ models
+
+Comparing partial R^2^ of the models' terms in both datasets, the original and the subsets of the same species (\ref{fig:fig_r2}). Qualitatively, we see that R^2^ almost didn't change with the dataset, expect for specialists in low-quality matrix landscapes where fixed effects (trait*env) decreased from 22% to 17%. 
+
+
+```{r fig_r2, fig.cap="Comparing partial R-squares for models terms in both datasets: original with all species (left) and the subset of species that occur at both regions (right)."}
+traits = c("lbody_size", "nest", "diet", "lower_stratum")
+
+# original data
+vals <- bind_rows(list(High_Specialists = r2.calc(mhigh.spe, atrib=traits)*100,
+      Low_Specialists=r2.calc(mlow.spe, atrib=traits)*100,
+      High_Generalists=r2.calc(mhigh.gen, atrib=traits)*100,
+     Low_Generalists=r2.calc(mlow.gen, atrib=traits)*100), .id="assemblage")
+
+colnames(vals) <- c("assemblage", "condicional", "trait*env", "env|sp", "lands:sp", "site:sp", "trait|lands", "trait|site")
+
+vals2 <-  vals %>%
+  separate(assemblage, c("matrix", "habitat")) %>%
+  select(-condicional) %>%
+  pivot_longer(3:8, names_to = "term", values_to = "R2") %>%
+  mutate(term = fct_relevel(term,"trait|site", "trait|lands", "site:sp", 
+                                  "lands:sp", "trait*env","env|sp"),
+         habitat = fct_relevel(habitat, "Specialists", "Generalists"),
+         matrix = fct_relevel(matrix, "Low", "High")) %>%
+  arrange(habitat,matrix,desc(term)) %>%
+  group_by(habitat, matrix) %>%
+  mutate(yis = cumsum(R2)-R2/2, 
+         label = as.character(round(R2))) %>% ungroup() %>%
+  mutate(xis = rep(rep(c(1.31,1.31), each=6), 2))
+
+
+# sameSpecies
+valsS <- bind_rows(list(High_Specialists = r2.calc(mhigh.speS, atrib=traits)*100,
+      Low_Specialists=r2.calc(mlow.speS, atrib=traits)*100,
+      High_Generalists=r2.calc(mhigh.genS, atrib=traits)*100,
+     Low_Generalists=r2.calc(mlow.genS, atrib=traits)*100), .id="assemblage")
+
+colnames(valsS) <- c("assemblage", "condicional", "trait*env", "env|sp", "lands:sp", "site:sp", "trait|lands", "trait|site")
+
+vals2S <-  valsS %>%
+  separate(assemblage, c("matrix", "habitat")) %>%
+  select(-condicional) %>%
+  pivot_longer(3:8, names_to = "term", values_to = "R2") %>%
+  mutate(term = fct_relevel(term,"trait|site", "trait|lands", "site:sp", 
+                                  "lands:sp", "trait*env","env|sp"),
+         habitat = fct_relevel(habitat, "Specialists", "Generalists"),
+         matrix = fct_relevel(matrix, "Low", "High")) %>%
+  arrange(habitat,matrix,desc(term)) %>%
+  group_by(habitat, matrix) %>%
+  mutate(yis = cumsum(R2)-R2/2, 
+         label = as.character(round(R2))) %>% ungroup() %>%
+  mutate(xis = rep(rep(c(2.31,2.31), each=6), 2))
+
+valr2 <- bind_rows(list(original= vals2, sameSP = vals2S), .id="dataset") %>%
+  mutate(matrix = fct_recode(matrix, `Low-quality`= "Low", `High-quality`="High"))
+
+
+
+fig.part <- ggplot(valr2, aes(x=dataset, y=R2, fill=term)) + geom_col(width=0.7) +
+  scale_fill_manual(name="Model terms" ,
+                    values = c("lightgrey","darkgrey","aquamarine1",
+                               "aquamarine3", "slateblue1", "slateblue4")) +
+  facet_grid(habitat~matrix)+
+  scale_y_continuous(name= expression(~ R^2), breaks=seq(0,70,10),
+                     limits=c(0,75)) +
+  scale_x_discrete(name="dataset") +
+  theme(text = element_text(size=12),
+        axis.text = element_text(size=12),
+        panel.background = element_rect(fill="#FAFAFA", color="#FAFAFA"),
+        strip.text = element_text(size=12, margin=margin(t=2,b=3))) +
+geom_text_repel(data=valr2, aes(label=label, y=yis, x=xis), 
+                segment.size = 0.15, size=3,
+                segment.alpha = 0.7,
+                direction="y",
+                show.legend=F,   nudge_x = 0.15, hjust=0)
+
+fig.part
+```
+
+
+```{r,echo=F, results="hide"}
+jpeg(here("figures","fig_R2-sameSP.jpg"), width=20, height = 12, units="cm", res=150)
+fig.part
+dev.off()
+```
+
+# 4. Predictions for each species local forest cover
+
+
+Predictions of species occurrence probability with forest cover at the local scale for the species that occur at both regions with models fitted for both datasets: the original and the subsets of the same species for forest specialists (\ref{fig:fig_spec}) and generalists (\ref{fig:fig_gen}). Landscape forest cover was fixed in 30%.
+
+```{r}
+#landscape cover 30%
+fland = (30 - mean(high.spe$forest_landOrig))/
+    sd(high.spe$forest_landOrig)
+
+# local forest cover
+# ORIGINAL DATA
+f400st.high <- seq(min(high.spe$forest_site400), max(high.spe$forest_site400),
+                     length.out=5)
+f400Orig.high <- f400st.high * sd(high.spe$forest_site400Orig) +
+                                              mean(high.spe$forest_site400Orig)
+local.high <- data.frame(forest_site400=f400st.high, 
+                         forest_site400Orig = f400Orig.high)
+
+f400st.low <- seq(min(low.spe$forest_site400), max(low.spe$forest_site400),
+                    length.out=5)
+f400Orig.low <-f400st.low * sd(low.spe$forest_site400Orig) +
+                  mean(low.spe$forest_site400Orig)
+local.low <- data.frame(forest_site400=f400st.low, 
+                         forest_site400Orig = f400Orig.low)
+
+# SAME SPECIES DATA
+f400st.highS <- seq(min(high.speS$forest_site400), max(high.speS$forest_site400),
+                     length.out=5)
+f400Orig.highS <- f400st.highS * sd(high.speS$forest_site400Orig) +
+                                              mean(high.speS$forest_site400Orig)
+local.highS <- data.frame(forest_site400=f400st.highS, 
+                         forest_site400Orig = f400Orig.highS)
+
+f400st.lowS <- seq(min(low.speS$forest_site400), max(low.speS$forest_site400),
+                    length.out=5)
+f400Orig.lowS <-f400st.lowS * sd(low.speS$forest_site400Orig) +
+                  mean(low.speS$forest_site400Orig)
+local.lowS <- data.frame(forest_site400=f400st.lowS, 
+                         forest_site400Orig = f400Orig.lowS)
+```
+
+
+```{r}
+# original data
+# high quality specialists
+sp.tra <- high.spe %>% select(sp, lbody_size, nest, diet, lower_stratum) %>%
+  distinct() 
+shigh.spe <- expand.grid(sp = both.spe,
+                    forest_land = fland,
+                    forest_site400 =f400st.high,
+                    landscape = "P02",
+                    site = "P02.P00") %>%
+  left_join(sp.tra, "sp") %>%
+  left_join(local.high, "forest_site400")
+shigh.spe$pretes <- predict(mhigh.spe, newdata=shigh.spe, type="response",
+                       re.form=NULL)
+
+# low quality specialists
+sp.tra2 <- low.spe %>% select(sp, lbody_size, nest, diet, lower_stratum) %>%
+  distinct()
+slow.spe <- expand.grid(sp = both.spe,
+                    forest_land = fland,
+                    forest_site400 =f400st.low,
+                    #forest_site400Orig = f400Orig.low,
+                    landscape = "148",
+                    site = "148.P10") %>%
+  left_join(sp.tra2, "sp")%>%
+  left_join(local.low, "forest_site400")
+slow.spe$pretes <- predict(mlow.spe, newdata=slow.spe, type="response",
+                           re.form=NULL)
+
+# sameSP data
+sp.traS <- high.speS %>% select(sp, lbody_size, nest, diet, lower_stratum) %>%
+  distinct() 
+shigh.speS <- expand.grid(sp = both.spe,
+                    forest_land = fland,
+                    forest_site400 =f400st.high,
+                    landscape = "P02",
+                    site = "P02.P00") %>%
+  left_join(sp.traS, "sp") %>%
+  left_join(local.high, "forest_site400")
+shigh.speS$pretes <- predict(mhigh.speS, newdata=shigh.speS, type="response",
+                       re.form=NULL)
+
+# low quality specialists
+sp.traS2 <- low.speS %>% select(sp, lbody_size, nest, diet, lower_stratum) %>%
+  distinct()
+slow.speS <- expand.grid(sp = both.spe,
+                    forest_land = fland,
+                    forest_site400 =f400st.low,
+                    #forest_site400Orig = f400Orig.low,
+                    landscape = "148",
+                    site = "148.P10") %>%
+  left_join(sp.traS2, "sp")%>%
+  left_join(local.low, "forest_site400")
+slow.speS$pretes <- predict(mlow.speS, newdata=slow.speS, type="response",
+                           re.form=NULL)
+
+bspe  <- bind_rows(list(High=shigh.spe,Low=slow.spe), .id="Matrix quality")
+bspeS <- bind_rows(list(High=shigh.speS,Low=slow.speS), .id="Matrix quality")
+
+pred.spe <- bind_rows(list(original=bspe,sameSP=bspeS), .id="dataset")
+```
+
+```{r fig_spec, fig.height=14,fig.width=11, fig.cap="Predictions for forest specialist birds."}
+pred.spe %>%
+  mutate(forest_site400Orig = round(forest_site400Orig)) %>%
+  ggplot(aes(x=forest_site400Orig, y=pretes, col=`Matrix quality`,
+             linetype=dataset)) +
+  geom_line() +
+  facet_wrap(~sp, ncol=7) + 
+  theme_cowplot() +
+  theme(legend.position = "top",
+        strip.text.x = element_text(hjust=0, size=10))+
+ scale_y_continuous(name= "Occurrence probability") +
+  scale_x_continuous(name="Local forest cover (%)") +
+  ggtitle("Forest specialists")
+```
+
+```{r}
+# original data
+# high quality generalists
+sp.tra <- high.gen %>% select(sp, lbody_size, nest, diet, lower_stratum) %>%
+  distinct() 
+shigh.gen <- expand.grid(sp = both.gen,
+                    forest_land = fland,
+                    forest_site400 =f400st.high,
+                    landscape = "P02",
+                    site = "P02.P00") %>%
+  left_join(sp.tra, "sp") %>%
+  left_join(local.high, "forest_site400")
+shigh.gen$pretes <- predict(mhigh.gen, newdata=shigh.gen, type="response",
+                       re.form=NULL)
+
+# low quality  generalists
+sp.tra2 <- low.gen %>% select(sp, lbody_size, nest, diet, lower_stratum) %>%
+  distinct()
+slow.gen <- expand.grid(sp = both.gen,
+                    forest_land = fland,
+                    forest_site400 =f400st.low,
+                    #forest_site400Orig = f400Orig.low,
+                    landscape = "148",
+                    site = "148.P10") %>%
+  left_join(sp.tra2, "sp")%>%
+  left_join(local.low, "forest_site400")
+slow.gen$pretes <- predict(mlow.gen, newdata=slow.gen, type="response",
+                           re.form=NULL)
+
+# sameSP data
+sp.traS <- high.genS %>% select(sp, lbody_size, nest, diet, lower_stratum) %>%
+  distinct() 
+shigh.genS <- expand.grid(sp = both.gen,
+                    forest_land = fland,
+                    forest_site400 =f400st.high,
+                    landscape = "P02",
+                    site = "P02.P00") %>%
+  left_join(sp.traS, "sp") %>%
+  left_join(local.high, "forest_site400")
+shigh.genS$pretes <- predict(mhigh.genS, newdata=shigh.genS, type="response",
+                       re.form=NULL)
+
+# low quality  generalists
+sp.traS2 <- low.genS %>% select(sp, lbody_size, nest, diet, lower_stratum) %>%
+  distinct()
+slow.genS <- expand.grid(sp = both.gen,
+                    forest_land = fland,
+                    forest_site400 =f400st.low,
+                    #forest_site400Orig = f400Orig.low,
+                    landscape = "148",
+                    site = "148.P10") %>%
+  left_join(sp.traS2, "sp")%>%
+  left_join(local.low, "forest_site400")
+slow.genS$pretes <- predict(mlow.genS, newdata=slow.genS, type="response",
+                           re.form=NULL)
+
+bgen  <- bind_rows(list(High=shigh.gen,Low=slow.gen), .id="Matrix quality")
+bgenS <- bind_rows(list(High=shigh.genS,Low=slow.genS), .id="Matrix quality")
+
+pred.gen <- bind_rows(list(original=bgen,sameSP=bgenS), .id="dataset")
+```
+
+```{r fig_gen, fig.height=18,fig.width=11, fig.cap="Predictions for forest generalist birds."}
+pred.gen %>%
+  mutate(forest_site400Orig = round(forest_site400Orig)) %>%
+  ggplot(aes(x=forest_site400Orig, y=pretes, col=`Matrix quality`,
+             linetype=dataset)) +
+  geom_line() +
+  facet_wrap(~sp, ncol=7) + 
+  theme_cowplot() +
+  theme(legend.position = "top",
+        strip.text.x = element_text(hjust=0, size=10))+
+ scale_y_continuous(name= "Occurrence probability") +
+  scale_x_continuous(name="Local forest cover (%)") +
+  ggtitle("Forest generalists")
+```
+
+
+
+
+

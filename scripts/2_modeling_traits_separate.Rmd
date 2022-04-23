@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
   error = F, cache = F, fig.pos="H")
 knitr::opts_knit$set(root.dir = "../")
 
-library(knitr)
+library(knitr);library(here)
 library(tidyverse); library(cowplot); library(patchwork)
 library(lme4); library(bbmle)
 theme_set(theme_cowplot())
@@ -29,14 +29,14 @@ theme_set(theme_cowplot())
 
 Loading auxiliary function for R2 calculations
 ```{r}
-source("scripts/r2_auxiliary_function.R")
+source(here("scripts","r2_auxiliary_function.R"))
 ```
 
 Loading data
 ```{r}
-load("scripts/datasets.Rdata")
+load(here("data","datasets.Rdata"))
 # saved models results
-load("models_outputs/models_traits.Rdata")
+load(here("models_outputs","models_traits.Rdata"))
 ```
 
 ```{r}
@@ -56,6 +56,9 @@ lands <- c(20,30,40)
 land.high <- (lands- mean(high.spe$forest_landOrig))/sd(high.spe$forest_landOrig)
 land.low  <- (lands - mean(low.spe$forest_landOrig))/sd(low.spe$forest_landOrig)
 ```
+
+
+
 
 # Individual models for each trait
 
@@ -93,7 +96,6 @@ bodylow.gen <- glmer(cbind(occor, n.visit-occor) ~
 ```
 
 ### Predictions
-
 
 ```{r}
 # body size 3 values
@@ -916,17 +918,170 @@ figinse
 dev.off()
 ```
 
+## Hand-wing index
+
+```{r, eval=F}
+hwhigh.spe <- glmer(cbind(occor, n.visit-occor) ~  
+                        forest_site400*handwing + forest_land*handwing +
+         (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                        (handwing|landscape) + (handwing|site),
+                      family=binomial, data=high.spe,
+                      nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                      optCtrl = list(maxfun = 500000)))
+
+hwlow.spe <- glmer(cbind(occor, n.visit-occor) ~  
+                      forest_site400*handwing + forest_land*handwing +
+           (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                      (handwing|landscape) + (handwing|site),
+                    family=binomial, data=low.spe,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                           optCtrl = list(maxfun = 500000)))
+hwhigh.gen <- glmer(cbind(occor, n.visit-occor) ~  
+                      forest_site400*handwing + forest_land*handwing +
+                      (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                      (handwing|landscape) + (handwing|site),
+                    family=binomial, data=high.gen,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                    optCtrl = list(maxfun = 500000)))
+
+hwlow.gen <- glmer(cbind(occor, n.visit-occor) ~  
+                     forest_site400*handwing + forest_land*handwing +
+                     (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                     (handwing|landscape) + (handwing|site),
+                   family=binomial, data=low.gen,
+                   nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                            optCtrl = list(maxfun = 500000)))
+```
+
+### Predictions
+
+```{r}
+# hand
+hand <- c(5,15,35)
+hand.high.spe <- (hand- mean(high.spe$handwingOrig, na.rm=T))/
+                                sd(high.spe$handwingOrig, na.rm=T)
+hand.low.spe <- (hand- mean(low.spe$handwingOrig, na.rm=T))/
+                                sd(low.spe$handwingOrig, na.rm=T)
+hand.high.gen <- (hand- mean(high.gen$handwingOrig, na.rm=T))/
+                                sd(high.spe$handwingOrig, na.rm=T)
+hand.low.gen <- (hand- mean(low.gen$handwingOrig, na.rm=T))/
+                                sd(low.gen$handwingOrig, na.rm=T)
+```
+
+```{r}
+# high.spe
+phandhigh.spe <- expand.grid(forest_site400 = f400Orig.high,
+                             forest_land = lands, 
+                             handwing = hand)
+newdata <- expand.grid(forest_site400 = f400st.high,
+                       forest_land = land.high,
+                       handwing = hand.high.spe)
+phandhigh.spe$pred <- predict(hwhigh.spe, newdata = newdata, re.form=NA, 
+                              type = "response")
+
+# low.spe
+phandlow.spe <- expand.grid(forest_site400 = f400Orig.low,
+                             forest_land =lands, 
+                             handwing = hand)
+newdata <- expand.grid(forest_site400 = f400st.low,
+                       forest_land = land.low,
+                       handwing = hand.low.spe)
+phandlow.spe$pred <- predict(hwlow.spe, newdata = newdata, re.form=NA, 
+                             type = "response")
 
 
+# high.gen
+phandhigh.gen <- expand.grid(forest_site400 = f400Orig.high,
+                             forest_land = lands, 
+                             handwing = hand)
+newdata <- expand.grid(forest_site400 = f400st.high,
+                       forest_land = land.high,
+                       handwing = hand.high.gen)
+phandhigh.gen$pred <- predict(hwhigh.gen, newdata = newdata, re.form=NA, 
+                              type = "response")
+
+# low.gen
+phandlow.gen <- expand.grid(forest_site400 = f400Orig.low,
+                            forest_land =lands, 
+                            handwing = hand)
+newdata <- expand.grid(forest_site400 = f400st.low,
+                       forest_land = land.low,
+                       handwing = hand.low.gen)
+phandlow.gen$pred <- predict(hwlow.gen, newdata = newdata, re.form=NA, 
+                             type = "response")
+```
+
+```{r}
+phand.spe <- bind_rows(list(high.spe = phandhigh.spe, 
+                        low.spe = phandlow.spe), .id="group") %>%
+  separate(group, c("matrix", "habitat")) 
+phand.gen <- bind_rows(list(high.gen = phandhigh.gen, 
+                            low.gen = phandlow.gen), .id="group") %>%
+  separate(group, c("matrix", "habitat")) 
+phand <- bind_rows(phand.spe, phand.gen) %>%
+  mutate(habitat = fct_relevel(habitat, "spe", "gen"))
+```
+
+```{r}
+labihand <- c(`5`= "5", `15`= "15", `35`= "35", `spe`= "Specialists",
+              `gen` = "Generalists")
+```
+
+```{r}
+fighand <- ggplot(phand, aes(x=forest_site400, y=pred, col=matrix,
+                                        linetype=as.factor(forest_land))) + 
+  geom_line(size=1.5) + 
+  facet_grid(habitat~as.factor(handwing), labeller=as_labeller(labihand)) +
+   scale_linetype_manual(name = "Landscape \n cover (%)", 
+                 values = c("dotted",  "dashed","solid")) +
+  scale_color_manual(name="Matrix quality", 
+                     labels=c("High", "Low"),
+                     values=c("darkgreen", "sandybrown")) +
+  scale_x_continuous(name="Local forest cover (%)", breaks=c(30,60)) +
+  scale_y_continuous(name="Occurrence probability", 
+                     breaks = c(0,0.1,0.2,0.3), limits = c(0,0.35)) +
+  theme(strip.text.x = element_text(size=12, margin = margin(r=2,l=2,t=2,b=2)),
+        text = element_text(size=14),
+        axis.text = element_text(size=12),
+        legend.position = "right") +
+  ggtitle("Handwing index")
+fighand
+```
+
+```{r}
+fighand2 <- phand %>% filter(forest_land == 30) %>%
+  ggplot(aes(x=forest_site400, y=pred, col=matrix)) + 
+  geom_line(size=1.5) +
+  facet_grid(habitat~as.factor(handwing), labeller=as_labeller(labihand))+
+  scale_color_manual(name="  Matrix \n  quality ", 
+                     labels=c("High","Low"),
+                     values=c("darkgreen", "sandybrown")) +
+  scale_x_continuous(name="Local forest cover (%)", breaks=c(30,60)) +
+  scale_y_continuous(name="Occurrence probability", 
+                     breaks = c(0,0.1,0.2,0.3), limits = c(0,0.35)) +
+  theme(strip.text.x = element_text(size=12, margin = margin(r=2,l=2,t=2,b=2)),
+        text = element_text(size=14),
+        axis.text = element_text(size=12),
+        legend.position = "right",
+        panel.background = element_rect(fill="#FAFAFA", color="#FAFAFA"),
+        legend.box.background = element_rect(fill="snow2", color="snow2")) +
+  ggtitle("Handwing index")
+fighand2
+```
 
 
+```{r, eval=F}
+jpeg("figures/trait_handwing.jpg", width = 16, height = 10, res=150, units="cm" )
+figinse
+dev.off()
+```
 
 # Comparing trait models
 
 ## Specialists high quality matrices
 
 ```{r}
-AICtab(bodyhigh.spe, diethigh.spe, nesthigh.spe, low_strathigh.spe, 
+AICtab(bodyhigh.spe, diethigh.spe, nesthigh.spe, low_strathigh.spe, hwhigh.spe,
        stratumhigh.spe, frugihigh.spe, insehigh.spe, base=T, weights=T) %>%
   kable()
 ```
@@ -939,7 +1094,8 @@ r2high.spe <- bind_rows(list(
               low_strat = r2.calc(low_strathigh.spe, atrib= "lower_stratum"),
               stratum = r2.calc(stratumhigh.spe, atrib= "stratum"),
               frugi = r2.calc(frugihigh.spe, atrib= "frugi"),
-              inse_size = r2.calc(insehigh.spe, atrib= "inse")), .id="trait" )
+              inse_size = r2.calc(insehigh.spe, atrib= "inse"),
+              handwing = r2.calc(hwhigh.spe, atrib="handwing")), .id="trait" )
 kable(r2high.spe)
 ```
 
@@ -947,7 +1103,7 @@ kable(r2high.spe)
 ## Specialists low quality matrices
 
 ```{r}
-AICtab(bodylow.spe, dietlow.spe, nestlow.spe, low_stratlow.spe, 
+AICtab(bodylow.spe, dietlow.spe, nestlow.spe, low_stratlow.spe, hwlow.spe,
        stratumlow.spe, frugilow.spe, inselow.spe, base=T, weights=T )%>%
   kable()
 ```
@@ -960,7 +1116,8 @@ r2low.spe <- bind_rows(list(
               low_strat = r2.calc(low_stratlow.spe, atrib= "lower_stratum"),
               stratum = r2.calc(stratumlow.spe, atrib= "stratum"),
               frugi = r2.calc(frugilow.spe, atrib= "frugi"),
-              inse_size = r2.calc(inselow.spe, atrib= "inse")), .id="trait" )
+              inse_size = r2.calc(inselow.spe, atrib= "inse"),
+              handwing = r2.calc(hwlow.spe, atrib="handwing")), .id="trait" )
 kable(r2low.spe)
 ```
 
@@ -968,7 +1125,7 @@ kable(r2low.spe)
 ## Generalists high quality matrices
 
 ```{r}
-AICtab(bodyhigh.gen, diethigh.gen, nesthigh.gen, low_strathigh.gen, 
+AICtab(bodyhigh.gen, diethigh.gen, nesthigh.gen, low_strathigh.gen, hwhigh.gen, 
        stratumhigh.gen, frugihigh.gen, insehigh.gen, base=T, weights=T) %>%
   kable()
 ```
@@ -981,7 +1138,8 @@ r2high.gen <- bind_rows(list(
               low_strat = r2.calc(low_strathigh.gen, atrib= "lower_stratum"),
               stratum = r2.calc(stratumhigh.gen, atrib= "stratum"),
               frugi = r2.calc(frugihigh.gen, atrib= "frugi"),
-              inse_size = r2.calc(insehigh.gen, atrib= "inse")), .id="trait" )
+              inse_size = r2.calc(insehigh.gen, atrib= "inse"),
+              handwing = r2.calc(hwhigh.gen, atrib="handwing")), .id="trait" )
 kable(r2high.gen)
 ```
 
@@ -989,7 +1147,7 @@ kable(r2high.gen)
 ## Generalists low quality matrices
 
 ```{r}
-AICtab(bodylow.gen, dietlow.gen, nestlow.gen, low_stratlow.gen, 
+AICtab(bodylow.gen, dietlow.gen, nestlow.gen, low_stratlow.gen, hwlow.gen,
        stratumlow.gen, frugilow.gen, inselow.gen, base=T, weights=T) %>% 
   kable()
 ```
@@ -1002,9 +1160,11 @@ r2low.gen <- bind_rows(list(
               low_strat = r2.calc(low_stratlow.gen, atrib= "lower_stratum"),
               stratum = r2.calc(stratumlow.gen, atrib= "stratum"),
               frugi = r2.calc(frugilow.gen, atrib= "frugi"),
-              inse_size = r2.calc(inselow.gen, atrib= "inse")), .id="trait" )
+              inse_size = r2.calc(inselow.gen, atrib= "inse"),
+              handwing = r2.calc(hwlow.gen, atrib="handwing")), .id="trait" )
 kable(r2low.gen)
 ```
+
 
 # Figure diet + nest type + body size
 
@@ -1067,8 +1227,8 @@ ggplot(aes(x=forest_site400, y=pred, col=matrix)) +
   ggtitle("Nest type")
 ```
 
-```{r, eval=F}
-jpeg("figures/traits_diet_nest_body.jpg", width = 20, height = 18, res=150, units="cm" )
+```{r}
+jpeg(here("figures","traits_diet_nest_body.jpg"), width = 20, height = 18, res=150, units="cm" )
 (figdiet2+legenda +plot_layout(widths = c(1,0.07)))/(figbody+fignest) 
 dev.off()
 ```
@@ -1076,7 +1236,6 @@ dev.off()
 # Trait importance metric
 
 Models withouth trait-enviroment interactions, to calculate trait importance metric.
-
 
 ```{r, eval=F}
 bodyhigh.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
@@ -1281,6 +1440,38 @@ inselow.gen2 <- glmer(cbind(occor, n.visit-occor) ~
                        family=binomial, data=low.gen,
                        nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
                                            optCtrl = list(maxfun = 500000)))
+
+hwhigh.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
+                      forest_site400 + forest_land +handwing +
+                      (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                      (handwing|landscape) + (handwing|site),
+                    family=binomial, data=high.spe,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                             optCtrl = list(maxfun = 500000)))
+
+hwlow.spe2 <- glmer(cbind(occor, n.visit-occor) ~  
+                     forest_site400 + forest_land + handwing +
+             (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                     (handwing|landscape) + (handwing|site),
+                   family=binomial, data=low.spe,
+                   nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                            optCtrl = list(maxfun = 500000)))
+
+hwhigh.gen2 <- glmer(cbind(occor, n.visit-occor) ~  
+                       forest_site400 + forest_land +handwing +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                       (handwing|landscape) + (handwing|site),
+                     family=binomial, data=high.gen,
+                     nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                            optCtrl = list(maxfun = 500000)))
+
+hwlow.gen2 <- glmer(cbind(occor, n.visit-occor) ~  
+                      forest_site400 + forest_land + handwing +
+            (forest_site400 + forest_land|sp) + (1|landscape:sp) + (1|site:sp) + 
+                      (handwing|landscape) + (handwing|site),
+                    family=binomial, data=low.gen,
+                    nAGQ = 1, control = glmerControl(optimizer = "bobyqa",
+                                             optCtrl = list(maxfun = 500000)))
 ```
 
 
@@ -1295,6 +1486,7 @@ save(bodyhigh.spe, bodyhigh.gen, bodylow.spe, bodylow.gen,
      stratumhigh.spe, stratumhigh.gen, stratumlow.spe, stratumlow.gen,
      frugihigh.spe, frugihigh.gen, frugilow.spe,frugilow.gen,
      insehigh.spe, insehigh.gen, inselow.spe, inselow.gen,
+     hwhigh.spe, hwhigh.gen, hwlow.spe, hwlow.gen,
      # no interaction trait*env
      bodyhigh.spe2, bodyhigh.gen2, bodylow.spe2, bodylow.gen2,
      diethigh.spe2, diethigh.gen2, dietlow.spe2, dietlow.gen2,
@@ -1303,6 +1495,7 @@ save(bodyhigh.spe, bodyhigh.gen, bodylow.spe, bodylow.gen,
      stratumhigh.spe2, stratumhigh.gen2, stratumlow.spe2, stratumlow.gen2,
      frugihigh.spe2, frugihigh.gen2, frugilow.spe2,frugilow.gen2,
      insehigh.spe2, insehigh.gen2, inselow.spe2, inselow.gen2,
-     file= "models_outputs/models_traits.Rdata")
+     hwhigh.spe2, hwhigh.gen2, hwlow.spe2, hwlow.gen2,
+     file= here("models_outputs","models_traits.Rdata"))
 ```
 
