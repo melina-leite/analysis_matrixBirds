@@ -57,7 +57,7 @@ library(betapart)
 ```
 
 Organization of the datasets for the environmental, species and site/landscape information.
-Processing and standardizing the data to create a wide formating data for analysis, for each bird assemblage (high and low-quality landscapes, and specialists and generalists).
+Processing and standardizing the data to create data for each bird assemblage (high and low-quality landscapes, forest specialists and habitat generalists).
 
 The resulting datasets will be used in all subsquent data exploration and analysis.
 
@@ -79,7 +79,7 @@ str(data)
 
 ## Sites information
 
-Site information and local forest cover at different buffer radius (400,600,800).
+Site information and local forest cover at different buffer radius (400m, 600m, 800m).
 
 ```{r}
 site <- read.csv(here("data", "sites_information.csv"))
@@ -87,9 +87,9 @@ str(site)
 ```
 
 
-## Landscapes information
+## Focal landscapes information
 
-landscapes information with land use cover (%) from a buffer at 2 km radius around the centroid of the landscape.
+landscapes information with land use cover (%) from a buffer at 2 km radius around the centroid of the focal landscape.
 
 ```{r}
 landscape <- read.csv(here("data", "landscapes_information.csv"))
@@ -179,7 +179,7 @@ low.gen <- low.gen %>% filter(sp %in% sp.low.gen$sp)
 
 # Summary species diversity
 
-Total richness specialists and generalists in each matrix quality type.
+Total richness for forest specialists and habitat generalists in each matrix quality type.
 ```{r}
 riq.high.spe <- length(unique(high.spe$sp))
 riq.low.spe <- length(unique(low.spe$sp))
@@ -195,7 +195,7 @@ riq.tot <- riq.gen + riq.spe
 riq.tot
 ```
 
-Richness per landscape and site
+Richness per landscape and site.
 ```{r}
 # landscape
 lcc.spe <- high.spe %>% filter(occor>0) %>% 
@@ -231,7 +231,7 @@ spp.spe <- low.spe %>% filter(occor>0) %>%
             max=max(riq), min=min(riq))
 site.sum <- rbind(scc.spe, spp.spe) %>% mutate(matrix = c("High", "Low"))
 
-# generalistas
+# generalists
 
 # landscape
 lcc.gen <- high.gen %>% filter(occor>0) %>% 
@@ -271,6 +271,7 @@ kable(gsite.sum[,c(6,1:5)])
 
 ## Beta diversity
 
+Calculating beta diversity among regions of low and high-quality matrix landscapes. 
 ```{r}
 data <- dataset %>% 
   select(matrix,sp,occor) %>% group_by(matrix, sp) %>%
@@ -307,7 +308,10 @@ kable(betas, digits=2)
 betas2 <- betas %>% select(-TotalBeta) %>% 
   pivot_longer(2:3, names_to = "beta", values_to = "value") %>%
   mutate(dataset = fct_relevel(dataset, "all_species", "specialists", "generalists"))
+```
 
+
+```{r, fig.cap="Beta diversity (all, turnover and nestedness) between assemblages in high- and low-quality matrix landscapes."}
 ggplot(betas2, aes(x=dataset, y=value, fill=beta)) +
   geom_col(width=0.6) +
   scale_x_discrete(labels=c("All species", "Specialists", "Generalists"))+
@@ -399,7 +403,7 @@ nbares %>% pivot_longer(2:6, "trait", "value") %>%
 
 
 
-Relationhips among continuous traits for generalists and specialists
+Relationhips among continuous traits for generalists and specialists.
 
 ```{r}
 ggpairs(sp, columns=c(5,9:12), ggplot2::aes(colour=habitat_specif),

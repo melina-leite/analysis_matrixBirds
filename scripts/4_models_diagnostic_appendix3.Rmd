@@ -215,22 +215,22 @@ Tables S3.\ref{tab:s3.2}, S3.\ref{tab:s3.3}, S3.\ref{tab:s3.4}, and S3.\ref{tab:
 
 ```{r, s3.2}
  tidy(mhigh.spe, effects = "fixed") %>% 
-  kable(digits=2,"latex", booktabs=T, caption = "Fixed effects oefficients for the model of specialists in high-quality matrix landscapes.")
+  kable(digits=2,"latex", booktabs=T, caption = "Fixed effects coefficients for the model of specialists in high-quality matrix landscapes.")
 ```
 
 ```{r, s3.3}
  tidy(mlow.spe, effects = "fixed") %>% 
-  kable(digits=2,"latex", booktabs=T,  caption = "Fixed effects oefficients for the model of specialists in low-quality matrix landscapes.")
+  kable(digits=2,"latex", booktabs=T,  caption = "Fixed effects coefficients for the model of specialists in low-quality matrix landscapes.")
 ```
 
 ```{r, s3.4}
  tidy(mhigh.gen, effects = "fixed") %>% 
-  kable(digits=2, "latex", booktabs=T, caption = "Fixed effects oefficients for the model of generalists in high-quality matrix landscapes.")
+  kable(digits=2, "latex", booktabs=T, caption = "Fixed effects coefficients for the model of generalists in high-quality matrix landscapes.")
 ```
 
 ```{r, s3.5}
  tidy(mlow.gen, effects = "fixed") %>% 
-  kable(digits=2,"latex", booktabs=T, caption = "Fixed effects oefficients for the model of generalists in low-quality matrix landscapes.")
+  kable(digits=2,"latex", booktabs=T, caption = "Fixed effects coefficients for the model of generalists in low-quality matrix landscapes.")
 ```
 
 # 3. Models diagnostic
@@ -594,7 +594,7 @@ bind_rows(list(High=shigh.gen,Low=slow.gen), .id="Matrix quality") %>%
         strip.text.x = element_text(hjust=0, size=10))+
  scale_y_continuous(name= "Occurrence probability") +
   scale_x_continuous(name="Local forest cover (%)") +
-  ggtitle("Forest generalists")
+  ggtitle("Habitat generalists")
 ```
 
 

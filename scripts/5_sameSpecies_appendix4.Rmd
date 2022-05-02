@@ -75,11 +75,11 @@ load(here("models_outputs","models_combined_sameSpecies.Rdata")) # saved models 
 load(here("models_outputs","models_combined.Rdata")) # saved models results original data
 ```
 
-Given that bird species pool are slightly different in both regions (see Appendix 1), the results we found comparing both high- and low-quality landscapes could be confounded by groups os species that respond differently but doesn't occur at both regions. In order to check for the robustness of our results, we performed separate analysis with only those species that occur in both regions, **57 forest specialists** and **64 forest generalists**, and compared them with the results presented in the main text with all species.
+Given that bird species pool are slightly different in both regions (see Appendix 1), the results we found comparing both high- and low-quality landscapes could be confounded by groups os species that respond differently but doesn't occur at both regions. In order to check for the robustness of our results, we performed separate analysis with only those species that occur in both regions, **57 forest specialists** (61.3% of all specialists) and **64 forest generalists** (73.6% of all generalists), and compared them with the results presented in the main text with all species.
 
 The analyses were done with the combined trait models, the same presented at Figure 2 and 3 in the main text.
 
-We found that even with the same groups of species analyzed, we get very similar results for the differences between high- and low-quality matrix landscapes.
+We found that even with the same groups of species analyzed, we get very similar results for the differences between high- and low-quality matrix landscapes, which reinforce that the drawned inferences regarding habitat loss responses remains the same regardless of the exclusion of 'unique' species in a given a region.
 
 
 
@@ -362,7 +362,7 @@ dev.off()
 # 4. Predictions for each species local forest cover
 
 
-Predictions of species occurrence probability with forest cover at the local scale for the species that occur at both regions with models fitted for both datasets: the original and the subsets of the same species for forest specialists (\ref{fig:fig_spec}) and generalists (\ref{fig:fig_gen}). Landscape forest cover was fixed in 30%.
+Predictions of species occurrence probability with forest cover at the local scale for the species that occur at both regions with models fitted for both datasets: the original and the subsets of the same species for forest specialists (\ref{fig:fig_spec}) and habitat generalists (\ref{fig:fig_gen}). Landscape forest cover was fixed in 30%.
 
 ```{r}
 #landscape cover 30%
@@ -541,7 +541,7 @@ bgenS <- bind_rows(list(High=shigh.genS,Low=slow.genS), .id="Matrix quality")
 pred.gen <- bind_rows(list(original=bgen,sameSP=bgenS), .id="dataset")
 ```
 
-```{r fig_gen, fig.height=18,fig.width=11, fig.cap="Predictions for forest generalist birds."}
+```{r fig_gen, fig.height=18,fig.width=11, fig.cap="Predictions for habitat generalist birds."}
 pred.gen %>%
   mutate(forest_site400Orig = round(forest_site400Orig)) %>%
   ggplot(aes(x=forest_site400Orig, y=pretes, col=`Matrix quality`,
@@ -553,7 +553,7 @@ pred.gen %>%
         strip.text.x = element_text(hjust=0, size=10))+
  scale_y_continuous(name= "Occurrence probability") +
   scale_x_continuous(name="Local forest cover (%)") +
-  ggtitle("Forest generalists")
+  ggtitle("Habitat generalists")
 ```
 
 

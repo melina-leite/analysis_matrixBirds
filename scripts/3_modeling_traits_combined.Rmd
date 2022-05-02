@@ -31,7 +31,7 @@ theme_set(theme_cowplot())
 
 Loading auxiliary function for R2 calculations
 ```{r}
-source("scripts/r2_auxiliary_function.R")
+source(here("scripts","r2_auxiliary_function.R"))
 ```
 
 Loading data
@@ -39,7 +39,6 @@ Loading data
 load(here("data","datasets.Rdata"))
 load(here("models_outputs","models_combined.Rdata")) # saved models results this script
 load(here("models_outputs","models_traits.Rdata")) # saved models results separate
-load(here("models_outputs","models_traits_nointeraction.Rdata")) # saved models results separate
 ```
 
 
