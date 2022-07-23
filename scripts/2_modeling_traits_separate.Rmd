@@ -1233,6 +1233,73 @@ jpeg(here("figures","traits_diet_nest_body.jpg"), width = 20, height = 18, res=1
 dev.off()
 ```
 
+
+```{r figure 5, echo=F}
+figdiet <- pdiet %>% filter(forest_land == 30) %>%
+  ggplot(aes(x=forest_site400, y=pred, col=matrix)) + 
+  geom_line(size=1) +
+  facet_grid(habitat~as.factor(diet), labeller=as_labeller(labidiet))+
+  scale_color_manual(name="  Matrix \n  quality ", 
+                     labels=c("High","Low"),
+                     values=c("darkgreen", "sandybrown")) +
+  scale_x_continuous(name="Local forest cover (%)", breaks=c(30,60)) +
+  scale_y_continuous(name="Occurrence probability", 
+                     breaks = c(0,0.1,0.2), limits = c(0,0.2)) +
+  theme(strip.text.x = element_text(size=10, margin = margin(r=2,l=2,t=2,b=2)),
+        text = element_text(size=10),
+        axis.text = element_text(size=10),
+        legend.position = "right",
+        panel.background = element_rect(fill="#FAFAFA", color="#FAFAFA"),
+        legend.box.background = element_rect(fill="snow2", color="snow2")) +
+  ggtitle("Main diet")
+
+figdiet2 <- figdiet + theme(legend.position = "none")
+legenda <- get_legend(figdiet)
+
+figbody <- pbody %>% filter(forest_land == 30) %>%
+ggplot(aes(x=forest_site400, y=pred, col=matrix)) + 
+  geom_line(size=1) +
+  facet_grid(habitat~as.factor(body_size), labeller=as_labeller(labibody))+
+  scale_color_manual(name="Matrix quality", 
+                     labels=c("High", "Low"),
+                     values=c("darkgreen", "sandybrown")) +
+  scale_x_continuous(name="Local forest cover (%)", breaks=c(30,60)) +
+  scale_y_continuous(name="Occurrence probability", 
+                     breaks = c(0,0.1,0.2), limits = c(0,0.2)) +
+  theme(strip.text.x = element_text(size=10, margin = margin(r=2,l=2,t=2,b=2)),
+         strip.text.y = element_blank(),
+        text = element_text(size=10),
+        axis.text = element_text(size=10),
+        panel.background = element_rect(fill="#FAFAFA", color="#FAFAFA"),
+        legend.position = "none") +
+  ggtitle("Body mass")
+
+fignest <- pnest %>% filter(forest_land == 30) %>%
+ggplot(aes(x=forest_site400, y=pred, col=matrix)) + 
+  geom_line(size=1) +
+  facet_grid(habitat~as.factor(nest), labeller=as_labeller(labinest))+
+  scale_color_manual(name="Matrix quality", 
+                     labels=c("High", "Low"),
+                     values=c("darkgreen", "sandybrown")) +
+  scale_x_continuous(name="Local forest cover (%)", breaks=c(30,60)) +
+  scale_y_continuous(name="", 
+                     breaks = c(0,0.1,0.2), limits = c(0,0.2)) +
+  theme(strip.text.x = element_text(size=10, margin = margin(r=2,l=2,t=2,b=2)),
+        text = element_text(size=10),
+        axis.text.y = element_blank(),
+        axis.text = element_text(size=10),
+        panel.background = element_rect(fill="#FAFAFA", color="#FAFAFA"),
+        legend.position = "none") +
+  ggtitle("Nest type")
+
+tiff(here("figures","traits_diet_nest_body.tiff"), width = 18, height = 16, res=300, units="cm" )
+(figdiet2+legenda +plot_layout(widths = c(1,0.07)))/(figbody+fignest) 
+dev.off()
+
+ggsave(here("figures","traits_diet_nest_body.pdf"), device="pdf",
+       width=200, height = 180, units="mm")
+```
+
 # Trait importance metric
 
 Models withouth trait-enviroment interactions, to calculate trait importance metric.
