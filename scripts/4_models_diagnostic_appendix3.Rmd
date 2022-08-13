@@ -1,5 +1,5 @@
 ---
-title: "Appendix 3: Additional models results"
+title: "Appendix S3: Additional models results"
 author: "Melina Leite"
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
 bibliography: ../references/refs_appendix.bib

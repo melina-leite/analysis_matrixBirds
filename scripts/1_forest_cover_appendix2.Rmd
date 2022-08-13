@@ -1,5 +1,5 @@
 ---
-title: 'Appendix 2: Landscapes land use and forest cover at different scales'
+title: 'Appendix S2: Landscapes land use and forest cover at different scales'
 author: "Melina Leite"
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
 bibliography: ../references/refs_appendix.bib

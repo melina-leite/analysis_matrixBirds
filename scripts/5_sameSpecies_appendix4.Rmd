@@ -1,5 +1,5 @@
 ---
-title: "Appendix 4: Robustness analysis with species that occur at both high and low-quality landscapes"
+title: "Appendix S4: Robustness analysis with species that occur at both high and low-quality landscapes"
 author: "Melina Leite"
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
 knit: (function(inputFile, encoding) {
@@ -18,11 +18,11 @@ output:
 documentclass: article
 classoption: a4paper
 header-includes:
-    - \renewcommand{\figurename}{Figure S3.}
+    - \renewcommand{\figurename}{Figure S4.}
     - \makeatletter
     - \def\fnum@figure{\figurename\thefigure}
     - \makeatother
-    - \renewcommand{\tablename}{Table S3.}
+    - \renewcommand{\tablename}{Table S4.}
     - \makeatletter
     - \def\fnum@table{\tablename\thetable}
     - \makeatother
