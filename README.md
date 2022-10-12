@@ -1,6 +1,6 @@
 # Matrix quality and habitat loss filtering on birds
 
-Data and code for the analysis of the manuscript Leite et al 2021 published as a Preprint on [EcoEvoRxiv](https://ecoevorxiv.org/bhec5) 
+Data and code for the analysis of the paper [Leite et al 2022](https://besjournals.onlinelibrary.wiley.com/doi/10.1111/1365-2664.14275) published on Journal of Applied Ecology, and previously as a Preprint on [EcoEvoRxiv](https://ecoevorxiv.org/bhec5) 
 
 Supplementary material availabe [here](https://osf.io/m4av9/).
 
